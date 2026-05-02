@@ -110,7 +110,7 @@ module RaindropCli
 
     def search(argv)
       options = parse_search_options(argv)
-      query = argv.join(" ").strip
+      query = build_search_query(argv, options)
       raise SearchError, "Search query is required." if query.empty?
 
       token = @config.access_token
@@ -148,7 +148,7 @@ module RaindropCli
     end
 
     def parse_search_options(argv)
-      options = { limit: DEFAULT_SEARCH_LIMIT, all: false }
+      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, tags: [] }
       limit_option_used = false
       parser = OptionParser.new do |opts|
         opts.on("--all") do
@@ -159,14 +159,25 @@ module RaindropCli
           options[:limit] = limit
           limit_option_used = true
         end
+
+        opts.on("--tag TAG") do |tag|
+          options[:tags] << tag
+        end
       end
       parser.parse!(argv)
       validate_search_options!(options, limit_option_used)
       options
     end
 
+    def build_search_query(argv, options)
+      query = argv.join(" ").strip
+      tag_query = options.fetch(:tags).map { |tag| format_tag_query(tag) }.join(" ")
+      [query, tag_query].reject(&:empty?).join(" ")
+    end
+
     def validate_search_options!(options, limit_option_used)
       validate_limit!(options.fetch(:limit))
+      validate_tags!(options.fetch(:tags))
 
       if options.fetch(:all) && limit_option_used
         raise SearchError, "`--all` cannot be used with `--limit`."
@@ -177,6 +188,19 @@ module RaindropCli
       return if limit.between?(1, MAX_SEARCH_LIMIT)
 
       raise SearchError, "Search limit must be between 1 and #{MAX_SEARCH_LIMIT}."
+    end
+
+    def validate_tags!(tags)
+      return if tags.all? { |tag| !tag.to_s.strip.empty? }
+
+      raise SearchError, "Search tag must not be empty."
+    end
+
+    def format_tag_query(tag)
+      tag = tag.strip
+      return %(#"#{tag}") if tag.include?(" ")
+
+      "##{tag}"
     end
 
     def search_all(client, query)

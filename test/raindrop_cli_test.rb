@@ -150,6 +150,46 @@ class RaindropCliTest < Minitest::Test
     assert_includes stderr, "`--all` cannot be used with `--limit`."
   end
 
+  def test_search_builds_query_with_tag
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby"]
+    options = { tags: ["docs"] }
+
+    assert_equal "ruby #docs", cli.send(:build_search_query, argv, options)
+  end
+
+  def test_search_builds_query_with_tag_only
+    cli = RaindropCli::CLI.new([])
+    argv = []
+    options = { tags: ["docs"] }
+
+    assert_equal "#docs", cli.send(:build_search_query, argv, options)
+  end
+
+  def test_search_accepts_multiple_tags
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby"]
+    options = { tags: ["docs", "rails"] }
+
+    assert_equal "ruby #docs #rails", cli.send(:build_search_query, argv, options)
+  end
+
+  def test_search_quotes_multi_word_tag
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby"]
+    options = { tags: ["coffee beans"] }
+
+    assert_equal %(ruby #"coffee beans"), cli.send(:build_search_query, argv, options)
+  end
+
+  def test_search_rejects_empty_tag
+    code, stdout, stderr, = run_cli(["search", "--tag", ""], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Search tag must not be empty."
+  end
+
   def test_tags_requires_authentication
     code, stdout, stderr, = run_cli(["tags"])
 
