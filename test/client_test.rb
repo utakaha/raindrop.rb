@@ -13,7 +13,7 @@ class ClientTest < Minitest::Test
         assert_equal "application/json", env.request_headers["Accept"]
         assert_equal "ruby docs", env.params.fetch("search")
         assert_equal "20", env.params.fetch("perpage")
-        assert_equal "0", env.params.fetch("page")
+        assert_equal "2", env.params.fetch("page")
 
         [
           200,
@@ -31,7 +31,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    payload = client_with(stubs, token: "secret-token").search_raindrops("ruby docs", perpage: 20)
+    payload = client_with(stubs, token: "secret-token").search_raindrops("ruby docs", perpage: 20, page: 2)
 
     assert_equal 123, payload.fetch("items").first.fetch("_id")
     stubs.verify_stubbed_calls

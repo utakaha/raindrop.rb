@@ -112,40 +112,82 @@ module RaindropCli
       token = @config.access_token
       raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
 
-      payload = Client.new(token: token).search_raindrops(query, perpage: options.fetch(:limit))
-      items = payload.fetch("items", [])
-
-      if items.empty?
-        @stdout.puts "No raindrops found."
+      client = Client.new(token: token)
+      if options.fetch(:all)
+        search_all(client, query)
       else
-        items.each do |item|
-          id = item["_id"].to_s
-          link = item["link"].to_s
-          title = item["title"].to_s.strip
-          title = link if title.empty?
-          @stdout.puts "#{id}\t#{title}\t#{link}"
-        end
+        payload = client.search_raindrops(query, perpage: options.fetch(:limit))
+        print_search_items(payload.fetch("items", []))
       end
 
       SUCCESS
     end
 
     def parse_search_options(argv)
-      options = { limit: 10 }
+      options = { limit: 10, all: false }
       parser = OptionParser.new do |opts|
+        opts.on("--all") do
+          options[:all] = true
+        end
+
         opts.on("--limit LIMIT", Integer) do |limit|
           options[:limit] = limit
         end
       end
       parser.parse!(argv)
-      validate_limit!(options.fetch(:limit))
+      validate_search_options!(options)
       options
+    end
+
+    def validate_search_options!(options)
+      validate_limit!(options.fetch(:limit))
+
+      if options.fetch(:all) && options.fetch(:limit) != 10
+        raise SearchError, "`--all` cannot be used with `--limit`."
+      end
     end
 
     def validate_limit!(limit)
       return if limit.between?(1, 50)
 
       raise SearchError, "Search limit must be between 1 and 50."
+    end
+
+    def search_all(client, query)
+      page = 0
+      fetched = 0
+      printed_any = false
+
+      loop do
+        payload = client.search_raindrops(query, perpage: 50, page: page)
+        items = payload.fetch("items", [])
+        break if items.empty?
+
+        print_search_items(items)
+        printed_any = true
+
+        fetched += items.size
+        count = payload["count"].to_i
+        break if count.positive? && fetched >= count
+
+        page += 1
+      end
+
+      @stdout.puts "No raindrops found." unless printed_any
+    end
+
+    def print_search_items(items)
+      if items.empty?
+        @stdout.puts "No raindrops found."
+      else
+        items.each do |item|
+          id = (item["_id"] || item["id"]).to_s
+          link = item["link"].to_s
+          title = item["title"].to_s.strip
+          title = link if title.empty?
+          @stdout.puts "#{id}\t#{title}\t#{link}"
+        end
+      end
     end
 
     def reject_arguments!(argv)
