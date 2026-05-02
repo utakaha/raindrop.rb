@@ -121,6 +121,19 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_search_raindrops_reports_connection_failure
+    connection = Object.new
+    def connection.get(_path)
+      raise Faraday::ConnectionFailed, "network is unreachable"
+    end
+    client = RaindropCli::Client.new(token: "secret-token", connection: connection)
+
+    error = assert_raises(RaindropCli::ApiError) do
+      client.search_raindrops("ruby")
+    end
+    assert_equal "API request failed: network is unreachable", error.message
+  end
+
   private
 
   def client_with(stubs, token:)
