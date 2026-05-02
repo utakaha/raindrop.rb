@@ -138,4 +138,15 @@ class RaindropCliTest < Minitest::Test
     assert_empty stdout
     assert_includes stderr, "`--all` cannot be used with `--limit`."
   end
+
+  def test_search_rejects_all_with_explicit_default_limit
+    code, stdout, stderr, = run_cli(
+      ["search", "ruby", "--all", "--limit", "50"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "`--all` cannot be used with `--limit`."
+  end
 end

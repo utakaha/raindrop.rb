@@ -11,6 +11,8 @@ module RaindropCli
   class CLI
     SUCCESS = 0
     FAILURE = 1
+    DEFAULT_SEARCH_LIMIT = 50
+    MAX_SEARCH_LIMIT = 50
 
     def initialize(argv, stdin: $stdin, stdout: $stdout, stderr: $stderr, config: nil)
       @argv = argv.dup
@@ -124,7 +126,8 @@ module RaindropCli
     end
 
     def parse_search_options(argv)
-      options = { limit: 10, all: false }
+      options = { limit: DEFAULT_SEARCH_LIMIT, all: false }
+      limit_option_used = false
       parser = OptionParser.new do |opts|
         opts.on("--all") do
           options[:all] = true
@@ -132,25 +135,26 @@ module RaindropCli
 
         opts.on("--limit LIMIT", Integer) do |limit|
           options[:limit] = limit
+          limit_option_used = true
         end
       end
       parser.parse!(argv)
-      validate_search_options!(options)
+      validate_search_options!(options, limit_option_used)
       options
     end
 
-    def validate_search_options!(options)
+    def validate_search_options!(options, limit_option_used)
       validate_limit!(options.fetch(:limit))
 
-      if options.fetch(:all) && options.fetch(:limit) != 10
+      if options.fetch(:all) && limit_option_used
         raise SearchError, "`--all` cannot be used with `--limit`."
       end
     end
 
     def validate_limit!(limit)
-      return if limit.between?(1, 50)
+      return if limit.between?(1, MAX_SEARCH_LIMIT)
 
-      raise SearchError, "Search limit must be between 1 and 50."
+      raise SearchError, "Search limit must be between 1 and #{MAX_SEARCH_LIMIT}."
     end
 
     def search_all(client, query)
