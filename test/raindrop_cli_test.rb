@@ -111,4 +111,20 @@ class RaindropCliTest < Minitest::Test
     assert_empty stdout
     assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
   end
+
+  def test_search_rejects_limit_less_than_one
+    code, stdout, stderr, = run_cli(["search", "ruby", "--limit", "0"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Search limit must be between 1 and 50."
+  end
+
+  def test_search_rejects_limit_greater_than_fifty
+    code, stdout, stderr, = run_cli(["search", "ruby", "--limit", "51"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Search limit must be between 1 and 50."
+  end
 end

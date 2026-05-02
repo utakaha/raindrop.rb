@@ -105,13 +105,14 @@ module RaindropCli
     end
 
     def search(argv)
+      options = parse_search_options(argv)
       query = argv.join(" ").strip
       raise SearchError, "Search query is required." if query.empty?
 
       token = @config.access_token
       raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
 
-      payload = Client.new(token: token).search_raindrops(query)
+      payload = Client.new(token: token).search_raindrops(query, perpage: options.fetch(:limit))
       items = payload.fetch("items", [])
 
       if items.empty?
@@ -127,6 +128,24 @@ module RaindropCli
       end
 
       SUCCESS
+    end
+
+    def parse_search_options(argv)
+      options = { limit: 10 }
+      parser = OptionParser.new do |opts|
+        opts.on("--limit LIMIT", Integer) do |limit|
+          options[:limit] = limit
+        end
+      end
+      parser.parse!(argv)
+      validate_limit!(options.fetch(:limit))
+      options
+    end
+
+    def validate_limit!(limit)
+      return if limit.between?(1, 50)
+
+      raise SearchError, "Search limit must be between 1 and 50."
     end
 
     def reject_arguments!(argv)
