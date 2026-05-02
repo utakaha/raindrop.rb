@@ -25,6 +25,11 @@ module RaindropCli
       handle_response(response)
     end
 
+    def tags(collection_id: 0)
+      response = @connection.get("tags/#{collection_id}")
+      handle_response(response)
+    end
+
     private
 
     def default_connection

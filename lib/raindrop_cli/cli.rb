@@ -30,6 +30,8 @@ module RaindropCli
         run_auth(@argv)
       when "search"
         search(@argv)
+      when "tags"
+        tags(@argv)
       when "-h", "--help", nil
         print_usage
         SUCCESS
@@ -120,6 +122,26 @@ module RaindropCli
       else
         payload = client.search_raindrops(query, perpage: options.fetch(:limit))
         print_search_items(payload.fetch("items", []))
+      end
+
+      SUCCESS
+    end
+
+    def tags(argv)
+      reject_arguments!(argv)
+
+      token = @config.access_token
+      raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
+
+      payload = Client.new(token: token).tags
+      items = payload.fetch("items", [])
+
+      if items.empty?
+        @stdout.puts "No tags found."
+      else
+        items.each do |item|
+          @stdout.puts "#{item["_id"]}\t#{item["count"]}"
+        end
       end
 
       SUCCESS
@@ -216,6 +238,7 @@ module RaindropCli
         Commands:
           auth    Manage authentication
           search  Search saved raindrops
+          tags    List tags
       USAGE
     end
 

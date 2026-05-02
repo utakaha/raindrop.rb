@@ -149,4 +149,20 @@ class RaindropCliTest < Minitest::Test
     assert_empty stdout
     assert_includes stderr, "`--all` cannot be used with `--limit`."
   end
+
+  def test_tags_requires_authentication
+    code, stdout, stderr, = run_cli(["tags"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
+
+  def test_tags_rejects_arguments
+    code, stdout, stderr, = run_cli(["tags", "extra"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
 end

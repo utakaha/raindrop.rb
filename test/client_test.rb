@@ -94,6 +94,33 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_tags_sends_authorized_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/rest/v1/tags/0") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "items" => [
+              {
+                "_id" => "ruby",
+                "count" => 12
+              }
+            ]
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").tags
+
+    assert_equal "ruby", payload.fetch("items").first.fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
   private
 
   def client_with(stubs, token:)
