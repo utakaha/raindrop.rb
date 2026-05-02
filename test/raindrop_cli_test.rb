@@ -95,4 +95,20 @@ class RaindropCliTest < Minitest::Test
     assert_includes stdout, "Token removed from /tmp/raindrop-cli/config.yml"
     assert_empty stderr
   end
+
+  def test_search_requires_query
+    code, stdout, stderr, = run_cli(["search"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Search query is required."
+  end
+
+  def test_search_requires_authentication
+    code, stdout, stderr, = run_cli(["search", "ruby"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
 end

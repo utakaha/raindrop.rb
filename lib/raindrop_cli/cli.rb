@@ -3,6 +3,7 @@
 require "io/console"
 require "optparse"
 
+require_relative "client"
 require_relative "config"
 require_relative "errors"
 
@@ -25,6 +26,8 @@ module RaindropCli
       case command
       when "auth"
         run_auth(@argv)
+      when "search"
+        search(@argv)
       when "-h", "--help", nil
         print_usage
         SUCCESS
@@ -101,6 +104,31 @@ module RaindropCli
       SUCCESS
     end
 
+    def search(argv)
+      query = argv.join(" ").strip
+      raise SearchError, "Search query is required." if query.empty?
+
+      token = @config.access_token
+      raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
+
+      payload = Client.new(token: token).search_raindrops(query)
+      items = payload.fetch("items", [])
+
+      if items.empty?
+        @stdout.puts "No raindrops found."
+      else
+        items.each do |item|
+          id = item["_id"].to_s
+          link = item["link"].to_s
+          title = item["title"].to_s.strip
+          title = link if title.empty?
+          @stdout.puts "#{id}\t#{title}\t#{link}"
+        end
+      end
+
+      SUCCESS
+    end
+
     def reject_arguments!(argv)
       raise OptionParser::InvalidArgument, argv.join(" ") unless argv.empty?
     end
@@ -122,6 +150,7 @@ module RaindropCli
 
         Commands:
           auth    Manage authentication
+          search  Search saved raindrops
       USAGE
     end
 
