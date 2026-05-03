@@ -8,7 +8,7 @@ require_relative "test_helper"
 class ClientTest < Minitest::Test
   def test_search_raindrops_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.get("/rest/v1/raindrops/0") do |env|
+      stub.get("/rest/v1/raindrops/123") do |env|
         assert_equal "Bearer secret-token", env.request_headers["Authorization"]
         assert_equal "application/json", env.request_headers["Accept"]
         assert_equal "ruby docs", env.params.fetch("search")
@@ -31,7 +31,12 @@ class ClientTest < Minitest::Test
       end
     end
 
-    payload = client_with(stubs, token: "secret-token").search_raindrops("ruby docs", perpage: 50, page: 2)
+    payload = client_with(stubs, token: "secret-token").search_raindrops(
+      "ruby docs",
+      collection_id: 123,
+      perpage: 50,
+      page: 2
+    )
 
     assert_equal 123, payload.fetch("items").first.fetch("_id")
     stubs.verify_stubbed_calls

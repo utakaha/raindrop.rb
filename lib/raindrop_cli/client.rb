@@ -14,8 +14,8 @@ module RaindropCli
       @connection = connection || default_connection
     end
 
-    def search_raindrops(query, perpage: 10, page: 0)
-      response = @connection.get("raindrops/0") do |request|
+    def search_raindrops(query, collection_id: 0, perpage: 10, page: 0)
+      response = @connection.get("raindrops/#{collection_id}") do |request|
         request.params.update(
           "search" => query,
           "perpage" => perpage,

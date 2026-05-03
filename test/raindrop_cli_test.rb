@@ -150,6 +150,45 @@ class RaindropCliTest < Minitest::Test
     assert_includes stderr, "`--all` cannot be used with `--limit`."
   end
 
+  def test_search_parses_collection_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby", "--collection", "123"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    assert_equal 123, options.fetch(:collection_id)
+    assert_equal ["ruby"], argv
+  end
+
+  def test_search_accepts_system_collection_ids
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby", "--collection", "-1"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    assert_equal(-1, options.fetch(:collection_id))
+  end
+
+  def test_search_query_is_not_required_with_collection_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["--collection", "123"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    refute cli.send(:search_query_required?, options)
+    assert_empty argv
+  end
+
+  def test_search_uses_default_collection_without_collection_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    assert cli.send(:search_query_required?, options)
+    assert_equal 0, cli.send(:search_collection_id, options)
+  end
+
   def test_search_builds_query_with_tag
     cli = RaindropCli::CLI.new([])
     argv = ["ruby"]

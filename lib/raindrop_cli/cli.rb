@@ -113,12 +113,16 @@ module RaindropCli
     def search(argv)
       options = parse_search_options(argv)
       query = build_search_query(argv, options)
-      raise SearchError, "Search query is required." if query.empty?
+      raise SearchError, "Search query is required." if query.empty? && search_query_required?(options)
 
       if options.fetch(:all)
-        search_all(authenticated_client, query)
+        search_all(authenticated_client, query, collection_id: search_collection_id(options))
       else
-        payload = authenticated_client.search_raindrops(query, perpage: options.fetch(:limit))
+        payload = authenticated_client.search_raindrops(
+          query,
+          collection_id: search_collection_id(options),
+          perpage: options.fetch(:limit)
+        )
         print_search_items(payload.fetch("items", []))
       end
 
@@ -170,11 +174,15 @@ module RaindropCli
     end
 
     def parse_search_options(argv)
-      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, tags: [] }
+      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, tags: [] }
       limit_option_used = false
       parser = OptionParser.new do |opts|
         opts.on("--all") do
           options[:all] = true
+        end
+
+        opts.on("--collection ID", Integer) do |collection_id|
+          options[:collection_id] = collection_id
         end
 
         opts.on("--limit LIMIT", Integer) do |limit|
@@ -206,6 +214,14 @@ module RaindropCli
       end
     end
 
+    def search_query_required?(options)
+      options.fetch(:collection_id).nil?
+    end
+
+    def search_collection_id(options)
+      options.fetch(:collection_id) || 0
+    end
+
     def validate_limit!(limit)
       return if limit.between?(1, MAX_SEARCH_LIMIT)
 
@@ -225,13 +241,13 @@ module RaindropCli
       "##{tag}"
     end
 
-    def search_all(client, query)
+    def search_all(client, query, collection_id:)
       page = 0
       fetched = 0
       printed_any = false
 
       loop do
-        payload = client.search_raindrops(query, perpage: 50, page: page)
+        payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page)
         items = payload.fetch("items", [])
         break if items.empty?
 
