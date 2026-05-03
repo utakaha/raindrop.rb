@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "io/console"
+require "json"
 require "optparse"
 
 require_relative "client"
@@ -116,14 +117,19 @@ module RaindropCli
       raise SearchError, "Search query is required." if query.empty? && search_query_required?(options)
 
       if options.fetch(:all)
-        search_all(authenticated_client, query, collection_id: search_collection_id(options))
+        search_all(
+          authenticated_client,
+          query,
+          collection_id: search_collection_id(options),
+          json: options.fetch(:json)
+        )
       else
         payload = authenticated_client.search_raindrops(
           query,
           collection_id: search_collection_id(options),
           perpage: options.fetch(:limit)
         )
-        print_search_items(payload.fetch("items", []))
+        print_search_items(payload.fetch("items", []), json: options.fetch(:json))
       end
 
       SUCCESS
@@ -174,11 +180,15 @@ module RaindropCli
     end
 
     def parse_search_options(argv)
-      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, tags: [] }
+      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, json: false, tags: [] }
       limit_option_used = false
       parser = OptionParser.new do |opts|
         opts.on("--all") do
           options[:all] = true
+        end
+
+        opts.on("--json") do
+          options[:json] = true
         end
 
         opts.on("--collection ID", Integer) do |collection_id|
@@ -241,18 +251,23 @@ module RaindropCli
       "##{tag}"
     end
 
-    def search_all(client, query, collection_id:)
+    def search_all(client, query, collection_id:, json:)
       page = 0
       fetched = 0
-      printed_any = false
+      found = false
+      collected_items = []
 
       loop do
         payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page)
         items = payload.fetch("items", [])
         break if items.empty?
 
-        print_search_items(items)
-        printed_any = true
+        if json
+          collected_items.concat(items)
+        else
+          print_search_items(items)
+        end
+        found = true
 
         fetched += items.size
         count = payload["count"].to_i
@@ -262,10 +277,16 @@ module RaindropCli
         sleep 1
       end
 
-      @stdout.puts "No raindrops found." unless printed_any
+      if json
+        print_json_items(collected_items)
+      else
+        @stdout.puts "No raindrops found." unless found
+      end
     end
 
-    def print_search_items(items)
+    def print_search_items(items, json: false)
+      return print_json_items(items) if json
+
       if items.empty?
         @stdout.puts "No raindrops found."
       else
@@ -279,6 +300,10 @@ module RaindropCli
           @stdout.puts
         end
       end
+    end
+
+    def print_json_items(items)
+      @stdout.puts JSON.generate(items)
     end
 
     def unique_items_by_id(items)

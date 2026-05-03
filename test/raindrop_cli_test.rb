@@ -169,6 +169,16 @@ class RaindropCliTest < Minitest::Test
     assert_equal(-1, options.fetch(:collection_id))
   end
 
+  def test_search_parses_json_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["ruby", "--json"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    assert options.fetch(:json)
+    assert_equal ["ruby"], argv
+  end
+
   def test_search_query_is_not_required_with_collection_option
     cli = RaindropCli::CLI.new([])
     argv = ["--collection", "123"]
@@ -255,6 +265,31 @@ class RaindropCliTest < Minitest::Test
                   https://techracho.bpsinc.jp/hachi8833/2026_03_31/157035
 
     OUTPUT
+  end
+
+  def test_search_prints_json_items
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+    items = [
+      {
+        "_id" => 1668242775,
+        "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
+        "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+      }
+    ]
+
+    cli.send(:print_search_items, items, json: true)
+
+    assert_equal items, JSON.parse(stdout.string)
+  end
+
+  def test_search_prints_empty_json_items
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+
+    cli.send(:print_search_items, [], json: true)
+
+    assert_equal "[]\n", stdout.string
   end
 
   def test_tags_requires_authentication
