@@ -259,6 +259,7 @@ module RaindropCli
         break if count.positive? && fetched >= count
 
         page += 1
+        sleep 1
       end
 
       @stdout.puts "No raindrops found." unless printed_any
