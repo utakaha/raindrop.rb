@@ -274,7 +274,9 @@ module RaindropCli
           link = item["link"].to_s
           title = item["title"].to_s.strip
           title = link if title.empty?
-          @stdout.puts "#{id}\t#{title}\t#{link}"
+          @stdout.puts "#{id}  #{title}"
+          @stdout.puts "            #{link}"
+          @stdout.puts
         end
       end
     end

@@ -229,6 +229,34 @@ class RaindropCliTest < Minitest::Test
     assert_includes stderr, "Search tag must not be empty."
   end
 
+  def test_search_prints_human_readable_items
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+    items = [
+      {
+        "_id" => 1668242775,
+        "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
+        "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+      },
+      {
+        "_id" => 1667301016,
+        "title" => "Rails 8.1 アプリ + SQLite3 を fly.io にデプロイして Litestream で Cloudflare R2 に...",
+        "link" => "https://techracho.bpsinc.jp/hachi8833/2026_03_31/157035"
+      }
+    ]
+
+    cli.send(:print_search_items, items)
+
+    assert_equal <<~OUTPUT, stdout.string
+      1668242775  Introducing Aliki: A Modern Theme for Ruby Documentation
+                  https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/
+
+      1667301016  Rails 8.1 アプリ + SQLite3 を fly.io にデプロイして Litestream で Cloudflare R2 に...
+                  https://techracho.bpsinc.jp/hachi8833/2026_03_31/157035
+
+    OUTPUT
+  end
+
   def test_tags_requires_authentication
     code, stdout, stderr, = run_cli(["tags"])
 
