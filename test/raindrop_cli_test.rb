@@ -221,4 +221,17 @@ class RaindropCliTest < Minitest::Test
     assert_empty stdout
     assert_includes stderr, "invalid argument: extra"
   end
+
+  def test_collections_deduplicates_items_by_id
+    cli = RaindropCli::CLI.new([])
+    items = [
+      { "_id" => 55596991, "title" => "Pocket", "count" => 2368 },
+      { "_id" => 55596991, "title" => "Pocket", "count" => 2368 },
+      { "_id" => 123, "title" => "Ruby", "count" => 8 }
+    ]
+
+    deduplicated_items = cli.send(:unique_items_by_id, items)
+
+    assert_equal [55596991, 123], deduplicated_items.map { |item| item.fetch("_id") }
+  end
 end

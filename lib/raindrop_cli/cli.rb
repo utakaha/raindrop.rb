@@ -147,6 +147,7 @@ module RaindropCli
 
       items = authenticated_client.root_collections.fetch("items", []) +
               authenticated_client.child_collections.fetch("items", [])
+      items = unique_items_by_id(items)
 
       if items.empty?
         @stdout.puts "No collections found."
@@ -259,6 +260,15 @@ module RaindropCli
           @stdout.puts "#{id}\t#{title}\t#{link}"
         end
       end
+    end
+
+    def unique_items_by_id(items)
+      items.each_with_object({}) do |item, indexed_items|
+        id = item["_id"] || item["id"]
+        next if id.nil?
+
+        indexed_items[id] ||= item
+      end.values
     end
 
     def reject_arguments!(argv)
