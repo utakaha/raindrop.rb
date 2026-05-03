@@ -32,6 +32,8 @@ module RaindropCli
         search(@argv)
       when "tags"
         tags(@argv)
+      when "collections"
+        collections(@argv)
       when "-h", "--help", nil
         print_usage
         SUCCESS
@@ -113,14 +115,10 @@ module RaindropCli
       query = build_search_query(argv, options)
       raise SearchError, "Search query is required." if query.empty?
 
-      token = @config.access_token
-      raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
-
-      client = Client.new(token: token)
       if options.fetch(:all)
-        search_all(client, query)
+        search_all(authenticated_client, query)
       else
-        payload = client.search_raindrops(query, perpage: options.fetch(:limit))
+        payload = authenticated_client.search_raindrops(query, perpage: options.fetch(:limit))
         print_search_items(payload.fetch("items", []))
       end
 
@@ -130,10 +128,7 @@ module RaindropCli
     def tags(argv)
       reject_arguments!(argv)
 
-      token = @config.access_token
-      raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
-
-      payload = Client.new(token: token).tags
+      payload = authenticated_client.tags
       items = payload.fetch("items", [])
 
       if items.empty?
@@ -145,6 +140,32 @@ module RaindropCli
       end
 
       SUCCESS
+    end
+
+    def collections(argv)
+      reject_arguments!(argv)
+
+      items = authenticated_client.root_collections.fetch("items", []) +
+              authenticated_client.child_collections.fetch("items", [])
+
+      if items.empty?
+        @stdout.puts "No collections found."
+      else
+        items.each do |item|
+          @stdout.puts "#{item["_id"]}\t#{item["title"]}\t#{item["count"]}"
+        end
+      end
+
+      SUCCESS
+    end
+
+    def authenticated_client
+      @authenticated_client ||= begin
+        token = @config.access_token
+        raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
+
+        Client.new(token: token)
+      end
     end
 
     def parse_search_options(argv)
@@ -263,6 +284,8 @@ module RaindropCli
           auth    Manage authentication
           search  Search saved raindrops
           tags    List tags
+          collections
+                  List collections
       USAGE
     end
 

@@ -34,6 +34,20 @@ module RaindropCli
       raise ApiError, "API request failed: #{e.message}"
     end
 
+    def root_collections
+      response = @connection.get("collections")
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
+    def child_collections
+      response = @connection.get("collections/childrens")
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     private
 
     def default_connection

@@ -205,4 +205,20 @@ class RaindropCliTest < Minitest::Test
     assert_empty stdout
     assert_includes stderr, "invalid argument: extra"
   end
+
+  def test_collections_requires_authentication
+    code, stdout, stderr, = run_cli(["collections"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
+
+  def test_collections_rejects_arguments
+    code, stdout, stderr, = run_cli(["collections", "extra"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
 end

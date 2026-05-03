@@ -121,6 +121,62 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_root_collections_sends_authorized_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/rest/v1/collections") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "items" => [
+              {
+                "_id" => 123,
+                "title" => "Development",
+                "count" => 16
+              }
+            ]
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").root_collections
+
+    assert_equal 123, payload.fetch("items").first.fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
+  def test_child_collections_sends_authorized_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/rest/v1/collections/childrens") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "items" => [
+              {
+                "_id" => 456,
+                "title" => "Ruby",
+                "count" => 8
+              }
+            ]
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").child_collections
+
+    assert_equal 456, payload.fetch("items").first.fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
   def test_search_raindrops_reports_connection_failure
     connection = Object.new
     def connection.get(_path)
