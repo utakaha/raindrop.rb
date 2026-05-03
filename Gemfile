@@ -6,4 +6,5 @@ gem "faraday"
 
 group :test do
   gem "minitest"
+  gem "rake"
 end
