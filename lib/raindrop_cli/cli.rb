@@ -31,6 +31,8 @@ module RaindropCli
         run_auth(@argv)
       when "search"
         search(@argv)
+      when "get"
+        get(@argv)
       when "tags"
         tags(@argv)
       when "collections"
@@ -135,6 +137,23 @@ module RaindropCli
       SUCCESS
     end
 
+    def get(argv)
+      options = parse_get_options(argv)
+      id = parse_raindrop_id(argv.shift)
+      reject_arguments!(argv)
+
+      payload = authenticated_client.get_raindrop(id)
+      item = payload.fetch("item", {})
+
+      if options.fetch(:json)
+        print_json_item(item)
+      else
+        print_raindrop_detail(item)
+      end
+
+      SUCCESS
+    end
+
     def tags(argv)
       reject_arguments!(argv)
 
@@ -177,6 +196,26 @@ module RaindropCli
 
         Client.new(token: token)
       end
+    end
+
+    def parse_get_options(argv)
+      options = { json: false }
+      parser = OptionParser.new do |opts|
+        opts.on("--json") do
+          options[:json] = true
+        end
+      end
+      parser.parse!(argv)
+      options
+    end
+
+    def parse_raindrop_id(value)
+      raise OptionParser::MissingArgument, "ID" if value.to_s.strip.empty?
+
+      id = Integer(value, exception: false)
+      raise OptionParser::InvalidArgument, value if id.nil? || id <= 0
+
+      id
     end
 
     def parse_search_options(argv)
@@ -291,7 +330,7 @@ module RaindropCli
         @stdout.puts "No raindrops found."
       else
         items.each do |item|
-          id = (item["_id"] || item["id"]).to_s
+          id = item["_id"].to_s
           link = item["link"].to_s
           title = item["title"].to_s.strip
           title = link if title.empty?
@@ -306,9 +345,42 @@ module RaindropCli
       @stdout.puts JSON.generate(items)
     end
 
+    def print_json_item(item)
+      @stdout.puts JSON.generate(item)
+    end
+
+    def print_raindrop_detail(item)
+      id = item["_id"].to_s
+      link = item["link"].to_s
+      title = item["title"].to_s.strip
+      title = link if title.empty?
+      tags = Array(item["tags"]).map(&:to_s)
+      created = item["created"].to_s
+      updated = item["lastUpdate"].to_s
+      excerpt = item["excerpt"].to_s.strip
+      note = item["note"].to_s.strip
+
+      @stdout.puts "ID: #{id}" unless id.empty?
+      @stdout.puts "Title: #{title}" unless title.empty?
+      @stdout.puts "URL: #{link}" unless link.empty?
+      @stdout.puts "Tags: #{tags.join(", ")}" unless tags.empty?
+      @stdout.puts "Created: #{created}" unless created.empty?
+      @stdout.puts "Updated: #{updated}" unless updated.empty?
+
+      print_detail_text("Description", excerpt)
+      print_detail_text("Note", note)
+    end
+
+    def print_detail_text(label, text)
+      return if text.empty?
+
+      @stdout.puts "#{label}:"
+      @stdout.puts text
+    end
+
     def unique_items_by_id(items)
       items.each_with_object({}) do |item, indexed_items|
-        id = item["_id"] || item["id"]
+        id = item["_id"]
         next if id.nil?
 
         indexed_items[id] ||= item
@@ -336,6 +408,7 @@ module RaindropCli
 
         Commands:
           auth    Manage authentication
+          get     Show a saved raindrop
           search  Search saved raindrops
           tags    List tags
           collections

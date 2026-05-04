@@ -292,6 +292,97 @@ class RaindropCliTest < Minitest::Test
     assert_equal "[]\n", stdout.string
   end
 
+  def test_get_requires_id
+    code, stdout, stderr, = run_cli(["get"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: ID"
+  end
+
+  def test_get_requires_authentication
+    code, stdout, stderr, = run_cli(["get", "1668242775"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
+
+  def test_get_rejects_extra_arguments
+    code, stdout, stderr, = run_cli(["get", "1668242775", "extra"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
+
+  def test_get_rejects_invalid_id
+    code, stdout, stderr, = run_cli(["get", "abc"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: abc"
+  end
+
+  def test_get_rejects_non_positive_id
+    code, stdout, stderr, = run_cli(["get", "0"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: 0"
+  end
+
+  def test_get_parses_json_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["--json", "1668242775"]
+
+    options = cli.send(:parse_get_options, argv)
+
+    assert options.fetch(:json)
+    assert_equal ["1668242775"], argv
+  end
+
+  def test_get_prints_human_readable_item
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+    item = {
+      "_id" => 1668242775,
+      "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
+      "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/",
+      "tags" => ["ruby", "docs"],
+      "created" => "2026-04-01T12:48:22.646Z",
+      "lastUpdate" => "2026-04-01T12:48:22.646Z",
+      "excerpt" => "Ruby's documentation gets a fresh look."
+    }
+
+    cli.send(:print_raindrop_detail, item)
+
+    assert_equal <<~OUTPUT, stdout.string
+      ID: 1668242775
+      Title: Introducing Aliki: A Modern Theme for Ruby Documentation
+      URL: https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/
+      Tags: ruby, docs
+      Created: 2026-04-01T12:48:22.646Z
+      Updated: 2026-04-01T12:48:22.646Z
+      Description:
+      Ruby's documentation gets a fresh look.
+    OUTPUT
+  end
+
+  def test_get_prints_json_item
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+    item = {
+      "_id" => 1668242775,
+      "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
+      "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+    }
+
+    cli.send(:print_json_item, item)
+
+    assert_equal item, JSON.parse(stdout.string)
+  end
+
   def test_tags_requires_authentication
     code, stdout, stderr, = run_cli(["tags"])
 

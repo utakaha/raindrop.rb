@@ -99,6 +99,32 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_get_raindrop_sends_authorized_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.get("/rest/v1/raindrop/1668242775") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "item" => {
+              "_id" => 1668242775,
+              "title" => "Ruby",
+              "link" => "https://www.ruby-lang.org/"
+            }
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").get_raindrop(1_668_242_775)
+
+    assert_equal 1_668_242_775, payload.fetch("item").fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
   def test_tags_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
       stub.get("/rest/v1/tags/0") do |env|
