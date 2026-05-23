@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-gem "faraday"
+gemspec
 
 group :test do
   gem "minitest"
