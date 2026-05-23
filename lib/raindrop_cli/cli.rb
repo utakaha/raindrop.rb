@@ -3,6 +3,7 @@
 require "io/console"
 require "json"
 require "optparse"
+require "uri"
 
 require_relative "client"
 require_relative "config"
@@ -31,6 +32,8 @@ module RaindropCli
         run_auth(@argv)
       when "config"
         run_config(@argv)
+      when "add"
+        add(@argv)
       when "search"
         search(@argv)
       when "get"
@@ -155,6 +158,30 @@ module RaindropCli
       SUCCESS
     end
 
+    def add(argv)
+      options = parse_add_options(argv)
+      link = parse_url(argv.shift)
+      reject_arguments!(argv)
+
+      payload = authenticated_client.create_raindrop(
+        link,
+        title: options.fetch(:title),
+        excerpt: options.fetch(:description),
+        note: options.fetch(:note),
+        tags: options.fetch(:tags),
+        collection_id: options.fetch(:collection_id)
+      )
+      item = payload.fetch("item", {})
+
+      if options.fetch(:json)
+        print_json_item(item)
+      else
+        print_raindrop_detail(item)
+      end
+
+      SUCCESS
+    end
+
     def search(argv)
       options = parse_search_options(argv)
       query = build_search_query(argv, options)
@@ -240,6 +267,38 @@ module RaindropCli
       end
     end
 
+    def parse_add_options(argv)
+      options = { json: false, title: nil, description: nil, note: nil, tags: [], collection_id: nil }
+      parser = OptionParser.new do |opts|
+        opts.on("--json") do
+          options[:json] = true
+        end
+
+        opts.on("--title TITLE") do |title|
+          options[:title] = title
+        end
+
+        opts.on("--description DESCRIPTION") do |description|
+          options[:description] = description
+        end
+
+        opts.on("--note NOTE") do |note|
+          options[:note] = note
+        end
+
+        opts.on("--tag TAG") do |tag|
+          options[:tags] << tag
+        end
+
+        opts.on("--collection ID", Integer) do |collection_id|
+          options[:collection_id] = collection_id
+        end
+      end
+      parser.parse!(argv)
+      validate_add_options!(options)
+      options
+    end
+
     def parse_get_options(argv)
       options = { json: false }
       parser = OptionParser.new do |opts|
@@ -258,6 +317,30 @@ module RaindropCli
       raise OptionParser::InvalidArgument, value if id.nil? || id <= 0
 
       id
+    end
+
+    def parse_url(value)
+      raise OptionParser::MissingArgument, "URL" if value.to_s.strip.empty?
+
+      uri = URI.parse(value)
+      return value if uri.is_a?(URI::HTTP) && !uri.host.to_s.empty?
+
+      raise OptionParser::InvalidArgument, value
+    rescue URI::InvalidURIError
+      raise OptionParser::InvalidArgument, value
+    end
+
+    def validate_add_options!(options)
+      validate_optional_text!("title", options.fetch(:title))
+      validate_optional_text!("description", options.fetch(:description))
+      validate_optional_text!("note", options.fetch(:note))
+      raise OptionParser::InvalidArgument, "tag" unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
+    end
+
+    def validate_optional_text!(name, value)
+      return if value.nil? || !value.to_s.strip.empty?
+
+      raise OptionParser::InvalidArgument, name
     end
 
     def parse_search_options(argv)
@@ -449,6 +532,7 @@ module RaindropCli
         Usage: raindrop <command>
 
         Commands:
+          add     Add a raindrop
           auth    Manage authentication
           config  Show configuration information
           get     Show a saved raindrop

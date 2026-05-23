@@ -147,6 +147,103 @@ class RaindropCliTest < Minitest::Test
     assert_includes stderr, "invalid argument: extra"
   end
 
+  def test_add_requires_url
+    code, stdout, stderr, = run_cli(["add"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: URL"
+  end
+
+  def test_add_requires_authentication
+    code, stdout, stderr, = run_cli(["add", "https://www.ruby-lang.org/"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
+
+  def test_add_rejects_invalid_url
+    code, stdout, stderr, = run_cli(["add", "not-a-url"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: not-a-url"
+  end
+
+  def test_add_rejects_non_http_url
+    code, stdout, stderr, = run_cli(["add", "file:///tmp/example.html"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: file:///tmp/example.html"
+  end
+
+  def test_add_rejects_extra_arguments
+    code, stdout, stderr, = run_cli(
+      ["add", "https://www.ruby-lang.org/", "extra"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
+
+  def test_add_parses_json_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["--json", "https://www.ruby-lang.org/"]
+
+    options = cli.send(:parse_add_options, argv)
+
+    assert options.fetch(:json)
+    assert_equal ["https://www.ruby-lang.org/"], argv
+  end
+
+  def test_add_parses_optional_fields
+    cli = RaindropCli::CLI.new([])
+    argv = [
+      "--title", "Ruby",
+      "--description", "Ruby language",
+      "--note", "Read later",
+      "--tag", "ruby",
+      "--tag", "docs",
+      "--collection", "55596991",
+      "https://www.ruby-lang.org/"
+    ]
+
+    options = cli.send(:parse_add_options, argv)
+
+    assert_equal "Ruby", options.fetch(:title)
+    assert_equal "Ruby language", options.fetch(:description)
+    assert_equal "Read later", options.fetch(:note)
+    assert_equal ["ruby", "docs"], options.fetch(:tags)
+    assert_equal 55_596_991, options.fetch(:collection_id)
+    assert_equal ["https://www.ruby-lang.org/"], argv
+  end
+
+  def test_add_rejects_empty_title
+    code, stdout, stderr, = run_cli(
+      ["add", "--title", "", "https://www.ruby-lang.org/"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: title"
+  end
+
+  def test_add_rejects_empty_tag
+    code, stdout, stderr, = run_cli(
+      ["add", "--tag", "", "https://www.ruby-lang.org/"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: tag"
+  end
+
   def test_search_requires_query
     code, stdout, stderr, = run_cli(["search"], config: FakeConfig.new(token: "stored-token"))
 

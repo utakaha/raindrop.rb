@@ -125,6 +125,82 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_create_raindrop_sends_authorized_json_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.post("/rest/v1/raindrop") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+        assert_equal "application/json", env.request_headers["Content-Type"]
+        assert_equal(
+          {
+            "link" => "https://www.ruby-lang.org/",
+            "pleaseParse" => {}
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "item" => {
+              "_id" => 123,
+              "title" => "Ruby",
+              "link" => "https://www.ruby-lang.org/"
+            }
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").create_raindrop("https://www.ruby-lang.org/")
+
+    assert_equal 123, payload.fetch("item").fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
+  def test_create_raindrop_sends_optional_fields
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.post("/rest/v1/raindrop") do |env|
+        assert_equal(
+          {
+            "link" => "https://www.ruby-lang.org/",
+            "pleaseParse" => {},
+            "title" => "Ruby",
+            "excerpt" => "Ruby language",
+            "note" => "Read later",
+            "tags" => ["ruby", "docs"],
+            "collection" => { "$id" => 55596991 }
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "item" => {
+              "_id" => 123,
+              "title" => "Ruby",
+              "link" => "https://www.ruby-lang.org/"
+            }
+          }.to_json
+        ]
+      end
+    end
+
+    client_with(stubs, token: "secret-token").create_raindrop(
+      "https://www.ruby-lang.org/",
+      title: "Ruby",
+      excerpt: "Ruby language",
+      note: "Read later",
+      tags: ["ruby", "docs"],
+      collection_id: 55_596_991
+    )
+
+    stubs.verify_stubbed_calls
+  end
+
   def test_tags_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
       stub.get("/rest/v1/tags/0") do |env|

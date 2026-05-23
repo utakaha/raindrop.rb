@@ -34,6 +34,16 @@ module RaindropCli
       raise ApiError, "API request failed: #{e.message}"
     end
 
+    def create_raindrop(link, title: nil, excerpt: nil, note: nil, tags: [], collection_id: nil)
+      response = @connection.post("raindrop") do |request|
+        request.headers["Content-Type"] = "application/json"
+        request.body = JSON.generate(create_raindrop_body(link, title, excerpt, note, tags, collection_id))
+      end
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     def tags(collection_id: 0)
       response = @connection.get("tags/#{collection_id}")
       handle_response(response)
@@ -62,6 +72,19 @@ module RaindropCli
         connection.headers["Accept"] = "application/json"
         connection.headers["Authorization"] = "Bearer #{@token}"
       end
+    end
+
+    def create_raindrop_body(link, title, excerpt, note, tags, collection_id)
+      body = {
+        "link" => link,
+        "pleaseParse" => {}
+      }
+      body["title"] = title unless title.to_s.empty?
+      body["excerpt"] = excerpt unless excerpt.to_s.empty?
+      body["note"] = note unless note.to_s.empty?
+      body["tags"] = tags unless tags.empty?
+      body["collection"] = { "$id" => collection_id } unless collection_id.nil?
+      body
     end
 
     def handle_response(response)
