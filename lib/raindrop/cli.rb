@@ -10,7 +10,7 @@ require_relative "config"
 require_relative "errors"
 require_relative "oauth"
 
-module RaindropCli
+module Raindrop
   class CLI
     SUCCESS = 0
     FAILURE = 1

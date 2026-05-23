@@ -7,7 +7,7 @@ require_relative "test_helper"
 
 class OAuthTest < Minitest::Test
   def test_authorization_url
-    oauth = RaindropCli::OAuth.new
+    oauth = Raindrop::OAuth.new
 
     url = oauth.authorization_url(
       client_id: "client-id",
@@ -72,7 +72,7 @@ class OAuthTest < Minitest::Test
       end
     end
 
-    error = assert_raises(RaindropCli::ApiError) do
+    error = assert_raises(Raindrop::ApiError) do
       oauth_with(stubs).exchange_code(
         client_id: "client-id",
         client_secret: "client-secret",
@@ -86,7 +86,7 @@ class OAuthTest < Minitest::Test
   end
 
   def test_extracts_authorization_code_from_loopback_callback
-    oauth = RaindropCli::OAuth.new
+    oauth = Raindrop::OAuth.new
 
     code = oauth.send(
       :authorization_code_from_request,
@@ -100,11 +100,11 @@ class OAuthTest < Minitest::Test
   private
 
   def oauth_with(stubs)
-    connection = Faraday.new(url: RaindropCli::OAuth::BASE_URL) do |builder|
+    connection = Faraday.new(url: Raindrop::OAuth::BASE_URL) do |builder|
       builder.headers["Accept"] = "application/json"
       builder.adapter :test, stubs
     end
 
-    RaindropCli::OAuth.new(connection: connection)
+    Raindrop::OAuth.new(connection: connection)
   end
 end

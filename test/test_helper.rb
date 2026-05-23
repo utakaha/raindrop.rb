@@ -6,4 +6,4 @@ require "minitest/autorun"
 require "stringio"
 require "tmpdir"
 
-require "raindrop_cli"
+require "raindrop"

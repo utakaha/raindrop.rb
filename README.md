@@ -1,1 +1,1 @@
-# raindrop-cli
+# raindrop

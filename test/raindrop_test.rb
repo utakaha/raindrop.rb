@@ -47,13 +47,13 @@ class FakeConfig
   end
 end
 
-class RaindropCliTest < Minitest::Test
+class RaindropTest < Minitest::Test
   def run_cli(argv, stdin: "", config: FakeConfig.new)
     stdout = StringIO.new
     stderr = StringIO.new
     input = StringIO.new(stdin)
 
-    code = RaindropCli::CLI.new(
+    code = Raindrop::CLI.new(
       argv,
       stdin: input,
       stdout: stdout,
@@ -113,7 +113,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_auth_login_parses_options
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = [
       "--client-id", "client-id",
       "--client-secret", "client-secret",
@@ -272,7 +272,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_add_parses_json_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["--json", "https://www.ruby-lang.org/"]
 
     options = cli.send(:parse_add_options, argv)
@@ -282,7 +282,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_add_parses_optional_fields
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = [
       "--title", "Ruby",
       "--description", "Ruby language",
@@ -380,7 +380,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_parses_collection_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby", "--collection", "123"]
 
     options = cli.send(:parse_search_options, argv)
@@ -390,7 +390,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_accepts_system_collection_ids
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby", "--collection", "-1"]
 
     options = cli.send(:parse_search_options, argv)
@@ -399,7 +399,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_parses_json_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby", "--json"]
 
     options = cli.send(:parse_search_options, argv)
@@ -409,7 +409,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_query_is_not_required_with_collection_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["--collection", "123"]
 
     options = cli.send(:parse_search_options, argv)
@@ -419,7 +419,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_uses_default_collection_without_collection_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby"]
 
     options = cli.send(:parse_search_options, argv)
@@ -429,7 +429,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_builds_query_with_tag
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby"]
     options = { tags: ["docs"] }
 
@@ -437,7 +437,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_builds_query_with_tag_only
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = []
     options = { tags: ["docs"] }
 
@@ -445,7 +445,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_accepts_multiple_tags
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby"]
     options = { tags: ["docs", "rails"] }
 
@@ -453,7 +453,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_search_quotes_multi_word_tag
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["ruby"]
     options = { tags: ["coffee beans"] }
 
@@ -470,7 +470,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_search_prints_human_readable_items
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
     items = [
       {
         "_id" => 1668242775,
@@ -498,7 +498,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_search_prints_json_items
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
     items = [
       {
         "_id" => 1668242775,
@@ -514,7 +514,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_search_prints_empty_json_items
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
 
     cli.send(:print_search_items, [], json: true)
 
@@ -562,7 +562,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_get_parses_json_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["--json", "1668242775"]
 
     options = cli.send(:parse_get_options, argv)
@@ -573,7 +573,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_get_prints_human_readable_item
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
       "_id" => 1668242775,
       "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
@@ -600,7 +600,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_get_prints_json_item
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
       "_id" => 1668242775,
       "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
@@ -645,7 +645,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_delete_parses_json_option
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     argv = ["--json", "1668242775"]
 
     options = cli.send(:parse_delete_options, argv)
@@ -656,7 +656,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_delete_prints_human_readable_result
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
 
     cli.send(:print_delete_result, 1_668_242_775, { "result" => true })
 
@@ -665,7 +665,7 @@ class RaindropCliTest < Minitest::Test
 
   def test_delete_prints_json_result
     stdout = StringIO.new
-    cli = RaindropCli::CLI.new([], stdout: stdout)
+    cli = Raindrop::CLI.new([], stdout: stdout)
 
     cli.send(:print_delete_result, 1_668_242_775, { "result" => true }, json: true)
 
@@ -705,7 +705,7 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_collections_deduplicates_items_by_id
-    cli = RaindropCli::CLI.new([])
+    cli = Raindrop::CLI.new([])
     items = [
       { "_id" => 55596991, "title" => "Pocket", "count" => 2368 },
       { "_id" => 55596991, "title" => "Pocket", "count" => 2368 },

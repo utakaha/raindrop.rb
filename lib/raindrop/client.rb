@@ -5,7 +5,7 @@ require "json"
 
 require_relative "errors"
 
-module RaindropCli
+module Raindrop
   class Client
     BASE_URL = "https://api.raindrop.io/rest/v1"
 

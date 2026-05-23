@@ -5,7 +5,7 @@ require "yaml"
 
 require_relative "errors"
 
-module RaindropCli
+module Raindrop
   class Config
     CONFIG_DIR_MODE = 0o700
     CONFIG_FILE_MODE = 0o600

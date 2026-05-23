@@ -7,7 +7,7 @@ require "uri"
 
 require_relative "errors"
 
-module RaindropCli
+module Raindrop
   class OAuth
     BASE_URL = "https://api.raindrop.io/v1"
     AUTHORIZATION_URL = "#{BASE_URL}/oauth/authorize"

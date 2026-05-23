@@ -7,7 +7,7 @@ class ConfigTest < Minitest::Test
     Dir.mktmpdir do |dir|
       path = File.join(dir, "raindrop-cli", "config.yml")
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
 
         config.save_oauth_token("access_token" => "access-token")
 
@@ -20,7 +20,7 @@ class ConfigTest < Minitest::Test
   def test_save_oauth_token
     Dir.mktmpdir do |dir|
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
 
         assert config.save_oauth_token(
           "access_token" => "access-token",
@@ -41,9 +41,9 @@ class ConfigTest < Minitest::Test
   def test_save_oauth_token_requires_access_token
     Dir.mktmpdir do |dir|
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
 
-        error = assert_raises(RaindropCli::ConfigError) do
+        error = assert_raises(Raindrop::ConfigError) do
           config.save_oauth_token("refresh_token" => "refresh-token")
         end
 
@@ -56,7 +56,7 @@ class ConfigTest < Minitest::Test
     Dir.mktmpdir do |dir|
       path = File.join(dir, "raindrop-cli", "config.yml")
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
 
         config.save_oauth_token("access_token" => "access-token")
 
@@ -71,7 +71,7 @@ class ConfigTest < Minitest::Test
     Dir.mktmpdir do |dir|
       path = File.join(dir, "raindrop-cli", "config.yml")
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
         config.save_oauth_token(
           "access_token" => "access-token",
           "refresh_token" => "refresh-token"
@@ -88,7 +88,7 @@ class ConfigTest < Minitest::Test
     Dir.mktmpdir do |dir|
       path = File.join(dir, "raindrop-cli", "config.yml")
       with_config_home(dir) do
-        config = RaindropCli::Config.new
+        config = Raindrop::Config.new
 
         config.save_oauth_token("access_token" => "access-token")
         File.write(

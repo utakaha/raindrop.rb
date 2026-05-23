@@ -53,7 +53,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    error = assert_raises(RaindropCli::ApiError) do
+    error = assert_raises(Raindrop::ApiError) do
       client_with(stubs, token: "bad-token").search_raindrops("ruby")
     end
 
@@ -72,7 +72,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    error = assert_raises(RaindropCli::ApiError) do
+    error = assert_raises(Raindrop::ApiError) do
       client_with(stubs, token: "secret-token").search_raindrops("ruby")
     end
 
@@ -91,7 +91,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    error = assert_raises(RaindropCli::ApiError) do
+    error = assert_raises(Raindrop::ApiError) do
       client_with(stubs, token: "secret-token").search_raindrops("ruby")
     end
 
@@ -309,9 +309,9 @@ class ClientTest < Minitest::Test
     def connection.get(_path)
       raise Faraday::ConnectionFailed, "network is unreachable"
     end
-    client = RaindropCli::Client.new(token: "secret-token", connection: connection)
+    client = Raindrop::Client.new(token: "secret-token", connection: connection)
 
-    error = assert_raises(RaindropCli::ApiError) do
+    error = assert_raises(Raindrop::ApiError) do
       client.search_raindrops("ruby")
     end
     assert_equal "API request failed: network is unreachable", error.message
@@ -320,12 +320,12 @@ class ClientTest < Minitest::Test
   private
 
   def client_with(stubs, token:)
-    connection = Faraday.new(url: RaindropCli::Client::BASE_URL) do |builder|
+    connection = Faraday.new(url: Raindrop::Client::BASE_URL) do |builder|
       builder.headers["Accept"] = "application/json"
       builder.headers["Authorization"] = "Bearer #{token}"
       builder.adapter :test, stubs
     end
 
-    RaindropCli::Client.new(token: token, connection: connection)
+    Raindrop::Client.new(token: token, connection: connection)
   end
 end
