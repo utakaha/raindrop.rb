@@ -5,9 +5,10 @@ require_relative "test_helper"
 class FakeConfig
   attr_reader :written_token, :deleted
 
-  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml")
+  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml", auth_type: "test_token")
     @token = token
     @path = path
+    @auth_type = auth_type
     @deleted = false
   end
 
@@ -19,9 +20,14 @@ class FakeConfig
     @token.to_s
   end
 
+  def auth_type
+    @auth_type.to_s
+  end
+
   def save_access_token(token)
     @written_token = token
     @token = token
+    @auth_type = "test_token"
     true
   end
 
@@ -94,6 +100,51 @@ class RaindropCliTest < Minitest::Test
     assert store.deleted
     assert_includes stdout, "Token removed from /tmp/raindrop-cli/config.yml"
     assert_empty stderr
+  end
+
+  def test_config_path_prints_config_path
+    code, stdout, stderr, = run_cli(["config", "path"])
+
+    assert_equal 0, code
+    assert_equal "/tmp/raindrop-cli/config.yml\n", stdout
+    assert_empty stderr
+  end
+
+  def test_config_prints_not_configured
+    code, stdout, stderr, = run_cli(["config"])
+
+    assert_equal 0, code
+    assert_equal "Auth: not configured\n", stdout
+    assert_empty stderr
+  end
+
+  def test_config_prints_masked_token
+    code, stdout, stderr, = run_cli(["config"], config: FakeConfig.new(token: "secret-token"))
+
+    assert_equal 0, code
+    assert_equal <<~OUTPUT, stdout
+      Auth: test_token
+      Access token: [REDACTED]
+    OUTPUT
+    assert_empty stderr
+    refute_includes stdout, "secret-token"
+  end
+
+  def test_config_rejects_unknown_command
+    code, stdout, stderr, = run_cli(["config", "unknown"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Unknown config command: unknown"
+    assert_includes stderr, "Usage: raindrop config [command]"
+  end
+
+  def test_config_path_rejects_arguments
+    code, stdout, stderr, = run_cli(["config", "path", "extra"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
   end
 
   def test_search_requires_query

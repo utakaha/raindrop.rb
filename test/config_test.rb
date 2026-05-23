@@ -10,6 +10,7 @@ class ConfigTest < Minitest::Test
 
         assert config.save_access_token("secret-token")
         assert_equal "secret-token", config.access_token
+        assert_equal "test_token", config.auth_type
       end
     end
   end

@@ -28,6 +28,10 @@ module RaindropCli
       data.dig("auth", "access_token").to_s.strip
     end
 
+    def auth_type
+      data.dig("auth", "type").to_s.strip
+    end
+
     def save_access_token(token)
       update do |data|
         data["auth"] ||= {}

@@ -29,6 +29,8 @@ module RaindropCli
       case command
       when "auth"
         run_auth(@argv)
+      when "config"
+        run_config(@argv)
       when "search"
         search(@argv)
       when "get"
@@ -75,6 +77,24 @@ module RaindropCli
       end
     end
 
+    def run_config(argv)
+      subcommand = argv.shift
+
+      case subcommand
+      when "path"
+        config_path(argv)
+      when nil
+        config_show(argv)
+      when "-h", "--help"
+        print_config_usage
+        SUCCESS
+      else
+        @stderr.puts "Unknown config command: #{subcommand}"
+        print_config_usage(@stderr)
+        FAILURE
+      end
+    end
+
     def auth_token(argv)
       reject_arguments!(argv)
 
@@ -108,6 +128,28 @@ module RaindropCli
         @stdout.puts "Token removed from #{@config.path}"
       else
         @stdout.puts "No token found in #{@config.path}"
+      end
+
+      SUCCESS
+    end
+
+    def config_path(argv)
+      reject_arguments!(argv)
+      @stdout.puts @config.path
+      SUCCESS
+    end
+
+    def config_show(argv)
+      reject_arguments!(argv)
+
+      type = @config.auth_type
+      token = @config.access_token
+
+      if type.empty? || token.empty?
+        @stdout.puts "Auth: not configured"
+      else
+        @stdout.puts "Auth: #{type}"
+        @stdout.puts "Access token: [REDACTED]"
       end
 
       SUCCESS
@@ -408,6 +450,7 @@ module RaindropCli
 
         Commands:
           auth    Manage authentication
+          config  Show configuration information
           get     Show a saved raindrop
           search  Search saved raindrops
           tags    List tags
@@ -424,6 +467,15 @@ module RaindropCli
           token   Save a Test token to the config file
           status  Show authentication status
           logout  Remove the stored token
+      USAGE
+    end
+
+    def print_config_usage(io = @stdout)
+      io.puts <<~USAGE
+        Usage: raindrop config [command]
+
+        Commands:
+          path    Show config file path
       USAGE
     end
   end
