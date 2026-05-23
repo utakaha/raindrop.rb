@@ -187,6 +187,9 @@ module RaindropCli
       else
         @stdout.puts "Auth: #{type}"
         @stdout.puts "Access token: [REDACTED]"
+        @stdout.puts "Refresh token: #{@config.refresh_token? ? "[REDACTED]" : "not stored"}"
+        @stdout.puts "Token type: #{@config.token_type.empty? ? "unknown" : @config.token_type}"
+        @stdout.puts "Expires in: #{@config.expires_in || "unknown"}"
       end
 
       SUCCESS

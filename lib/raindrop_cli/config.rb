@@ -32,6 +32,18 @@ module RaindropCli
       data.dig("auth", "type").to_s.strip
     end
 
+    def refresh_token?
+      !data.dig("auth", "refresh_token").to_s.strip.empty?
+    end
+
+    def token_type
+      data.dig("auth", "token_type").to_s.strip
+    end
+
+    def expires_in
+      data.dig("auth", "expires_in")
+    end
+
     def save_oauth_token(payload)
       access_token = payload["access_token"].to_s.strip
       raise ConfigError, "OAuth response did not include an access token." if access_token.empty?

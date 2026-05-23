@@ -5,10 +5,13 @@ require_relative "test_helper"
 class FakeConfig
   attr_reader :deleted
 
-  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml", auth_type: "oauth")
+  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml", auth_type: "oauth", refresh_token: nil, token_type: "", expires_in: nil)
     @token = token
     @path = path
     @auth_type = auth_type
+    @refresh_token = refresh_token
+    @token_type = token_type
+    @expires_in = expires_in
     @deleted = false
   end
 
@@ -22,6 +25,18 @@ class FakeConfig
 
   def auth_type
     @auth_type.to_s
+  end
+
+  def refresh_token?
+    !@refresh_token.to_s.empty?
+  end
+
+  def token_type
+    @token_type.to_s
+  end
+
+  def expires_in
+    @expires_in
   end
 
   def delete_access_token
@@ -157,15 +172,27 @@ class RaindropCliTest < Minitest::Test
   end
 
   def test_config_prints_masked_token
-    code, stdout, stderr, = run_cli(["config"], config: FakeConfig.new(token: "secret-token"))
+    code, stdout, stderr, = run_cli(
+      ["config"],
+      config: FakeConfig.new(
+        token: "secret-token",
+        refresh_token: "refresh-token",
+        token_type: "Bearer",
+        expires_in: 1_209_599
+      )
+    )
 
     assert_equal 0, code
     assert_equal <<~OUTPUT, stdout
       Auth: oauth
       Access token: [REDACTED]
+      Refresh token: [REDACTED]
+      Token type: Bearer
+      Expires in: 1209599
     OUTPUT
     assert_empty stderr
     refute_includes stdout, "secret-token"
+    refute_includes stdout, "refresh-token"
   end
 
   def test_config_prints_unsupported_auth_type
