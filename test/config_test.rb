@@ -3,28 +3,48 @@
 require_relative "test_helper"
 
 class ConfigTest < Minitest::Test
-  def test_save_and_read_access_token
-    Dir.mktmpdir do |dir|
-      with_config_home(dir) do
-        config = RaindropCli::Config.new
-
-        assert config.save_access_token("secret-token")
-        assert_equal "secret-token", config.access_token
-        assert_equal "test_token", config.auth_type
-      end
-    end
-  end
-
-  def test_save_access_token_sets_directory_and_file_permissions
+  def test_save_oauth_token_sets_directory_and_file_permissions
     Dir.mktmpdir do |dir|
       path = File.join(dir, "raindrop-cli", "config.yml")
       with_config_home(dir) do
         config = RaindropCli::Config.new
 
-        config.save_access_token("secret-token")
+        config.save_oauth_token("access_token" => "access-token")
 
         assert_equal "700", mode_string(File.dirname(path))
         assert_equal "600", mode_string(path)
+      end
+    end
+  end
+
+  def test_save_oauth_token
+    Dir.mktmpdir do |dir|
+      with_config_home(dir) do
+        config = RaindropCli::Config.new
+
+        assert config.save_oauth_token(
+          "access_token" => "access-token",
+          "refresh_token" => "refresh-token",
+          "token_type" => "Bearer",
+          "expires_in" => 1_209_599
+        )
+
+        assert_equal "oauth", config.auth_type
+        assert_equal "access-token", config.access_token
+      end
+    end
+  end
+
+  def test_save_oauth_token_requires_access_token
+    Dir.mktmpdir do |dir|
+      with_config_home(dir) do
+        config = RaindropCli::Config.new
+
+        error = assert_raises(RaindropCli::ConfigError) do
+          config.save_oauth_token("refresh_token" => "refresh-token")
+        end
+
+        assert_equal "OAuth response did not include an access token.", error.message
       end
     end
   end
@@ -35,7 +55,24 @@ class ConfigTest < Minitest::Test
       with_config_home(dir) do
         config = RaindropCli::Config.new
 
-        config.save_access_token("secret-token")
+        config.save_oauth_token("access_token" => "access-token")
+
+        assert config.delete_access_token
+        refute File.exist?(path)
+        assert_empty config.access_token
+      end
+    end
+  end
+
+  def test_delete_access_token_removes_oauth_credentials
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "raindrop-cli", "config.yml")
+      with_config_home(dir) do
+        config = RaindropCli::Config.new
+        config.save_oauth_token(
+          "access_token" => "access-token",
+          "refresh_token" => "refresh-token"
+        )
 
         assert config.delete_access_token
         refute File.exist?(path)
@@ -50,13 +87,13 @@ class ConfigTest < Minitest::Test
       with_config_home(dir) do
         config = RaindropCli::Config.new
 
-        config.save_access_token("secret-token")
+        config.save_oauth_token("access_token" => "access-token")
         File.write(
           path,
           {
             "auth" => {
-              "type" => "test_token",
-              "access_token" => "secret-token"
+              "type" => "oauth",
+              "access_token" => "access-token"
             },
             "defaults" => {
               "collection_id" => 0

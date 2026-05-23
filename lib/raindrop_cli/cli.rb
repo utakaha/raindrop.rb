@@ -8,6 +8,7 @@ require "uri"
 require_relative "client"
 require_relative "config"
 require_relative "errors"
+require_relative "oauth"
 
 module RaindropCli
   class CLI
@@ -66,8 +67,11 @@ module RaindropCli
       subcommand = argv.shift
 
       case subcommand
+      when "login"
+        auth_login(argv)
       when "token"
-        auth_token(argv)
+        reject_arguments!(argv)
+        raise AuthenticationError, "Test token authentication is not supported. Run `raindrop auth login`."
       when "status"
         auth_status(argv)
       when "logout"
@@ -100,14 +104,35 @@ module RaindropCli
       end
     end
 
-    def auth_token(argv)
+    def auth_login(argv)
+      options = parse_auth_login_options(argv)
       reject_arguments!(argv)
 
-      token = read_token_input
-      raise AuthenticationError, "Token is empty." if token.empty?
+      oauth = OAuth.new
+      code = options.fetch(:code)
+      redirect_uri = options.fetch(:redirect_uri) || OAuth::DEFAULT_REDIRECT_URI
+      if code.to_s.strip.empty?
+        @stdout.puts "Redirect URI:"
+        @stdout.puts redirect_uri
+        @stdout.puts
+        @stdout.puts "Open this URL:"
+        @stdout.puts oauth.authorization_url(
+          client_id: options.fetch(:client_id),
+          redirect_uri: redirect_uri
+        )
+        @stdout.puts "Waiting for OAuth callback on #{redirect_uri}"
+        code = oauth.receive_authorization_code(redirect_uri: redirect_uri)
+      end
+      raise AuthenticationError, "Authorization code is empty." if code.to_s.strip.empty?
 
-      @config.save_access_token(token)
-      @stdout.puts "Token saved to #{@config.path}"
+      payload = oauth.exchange_code(
+        client_id: options.fetch(:client_id),
+        client_secret: options.fetch(:client_secret),
+        redirect_uri: redirect_uri,
+        code: code.strip
+      )
+      @config.save_oauth_token(payload)
+      @stdout.puts "OAuth token saved to #{@config.path}"
       SUCCESS
     end
 
@@ -117,7 +142,10 @@ module RaindropCli
       token = @config.access_token
 
       if token.empty?
-        @stdout.puts "Not authenticated. Run `raindrop auth token`."
+        @stdout.puts "Not authenticated. Run `raindrop auth login`."
+        FAILURE
+      elsif @config.auth_type != "oauth"
+        @stdout.puts "Test token authentication is not supported. Run `raindrop auth login`."
         FAILURE
       else
         @stdout.puts "Authenticated by #{@config.path}"
@@ -152,6 +180,10 @@ module RaindropCli
 
       if type.empty? || token.empty?
         @stdout.puts "Auth: not configured"
+      elsif type != "oauth"
+        @stdout.puts "Auth: unsupported"
+        @stdout.puts "Type: #{type}"
+        @stdout.puts "Run `raindrop auth login`."
       else
         @stdout.puts "Auth: #{type}"
         @stdout.puts "Access token: [REDACTED]"
@@ -274,10 +306,35 @@ module RaindropCli
     def authenticated_client
       @authenticated_client ||= begin
         token = @config.access_token
-        raise AuthenticationError, "Not authenticated. Run `raindrop auth token`." if token.empty?
+        raise AuthenticationError, "Not authenticated. Run `raindrop auth login`." if token.empty?
+        raise AuthenticationError, "Test token authentication is not supported. Run `raindrop auth login`." unless @config.auth_type == "oauth"
 
         Client.new(token: token)
       end
+    end
+
+    def parse_auth_login_options(argv)
+      options = { client_id: nil, client_secret: nil, redirect_uri: nil, code: nil }
+      parser = OptionParser.new do |opts|
+        opts.on("--client-id ID") do |client_id|
+          options[:client_id] = client_id
+        end
+
+        opts.on("--client-secret SECRET") do |client_secret|
+          options[:client_secret] = client_secret
+        end
+
+        opts.on("--redirect-uri URI") do |redirect_uri|
+          options[:redirect_uri] = redirect_uri
+        end
+
+        opts.on("--code CODE") do |code|
+          options[:code] = code
+        end
+      end
+      parser.parse!(argv)
+      validate_auth_login_options!(options)
+      options
     end
 
     def parse_add_options(argv)
@@ -365,6 +422,18 @@ module RaindropCli
       return if value.nil? || !value.to_s.strip.empty?
 
       raise OptionParser::InvalidArgument, name
+    end
+
+    def validate_auth_login_options!(options)
+      %i[client_id client_secret].each do |name|
+        validate_required_text!(name.to_s.tr("_", "-"), options.fetch(name))
+      end
+      parse_url(options.fetch(:redirect_uri)) unless options.fetch(:redirect_uri).nil?
+    end
+
+    def validate_required_text!(name, value)
+      raise OptionParser::MissingArgument, name if value.nil?
+      raise OptionParser::InvalidArgument, name if value.to_s.strip.empty?
     end
 
     def parse_search_options(argv)
@@ -548,17 +617,6 @@ module RaindropCli
       raise OptionParser::InvalidArgument, argv.join(" ") unless argv.empty?
     end
 
-    def read_token_input
-      if @stdin.tty?
-        @stdout.print "Test token: "
-        token = @stdin.noecho(&:gets).to_s
-        @stdout.puts
-        token.strip
-      else
-        @stdin.read.to_s.strip
-      end
-    end
-
     def print_usage(io = @stdout)
       io.puts <<~USAGE
         Usage: raindrop <command>
@@ -581,7 +639,7 @@ module RaindropCli
         Usage: raindrop auth <command>
 
         Commands:
-          token   Save a Test token to the config file
+          login   Login with OAuth
           status  Show authentication status
           logout  Remove the stored token
       USAGE

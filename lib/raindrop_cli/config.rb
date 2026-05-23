@@ -32,11 +32,18 @@ module RaindropCli
       data.dig("auth", "type").to_s.strip
     end
 
-    def save_access_token(token)
+    def save_oauth_token(payload)
+      access_token = payload["access_token"].to_s.strip
+      raise ConfigError, "OAuth response did not include an access token." if access_token.empty?
+
       update do |data|
-        data["auth"] ||= {}
-        data["auth"]["type"] = "test_token"
-        data["auth"]["access_token"] = token
+        data["auth"] = {
+          "type" => "oauth",
+          "access_token" => access_token
+        }
+        data["auth"]["refresh_token"] = payload["refresh_token"].to_s unless payload["refresh_token"].to_s.empty?
+        data["auth"]["token_type"] = payload["token_type"].to_s unless payload["token_type"].to_s.empty?
+        data["auth"]["expires_in"] = payload["expires_in"] if payload.key?("expires_in")
       end
 
       true
@@ -49,8 +56,7 @@ module RaindropCli
       token = data.dig("auth", "access_token").to_s.strip
       return false if token.empty?
 
-      data["auth"].delete("access_token")
-      data.delete("auth") if data["auth"].empty? || data["auth"] == { "type" => "test_token" }
+      data.delete("auth")
       write_data(data)
 
       true

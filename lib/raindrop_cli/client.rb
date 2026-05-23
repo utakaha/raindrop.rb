@@ -114,7 +114,7 @@ module RaindropCli
 
     def error_message(response, payload)
       if response.status == 401
-        return "Authentication failed. The stored token may be invalid. Run `raindrop auth token` again."
+        return "Authentication failed. The stored token may be invalid. Run `raindrop auth login` again."
       end
 
       message = payload["errorMessage"] || payload["message"] || response.reason_phrase || "HTTP error"

@@ -3,9 +3,9 @@
 require_relative "test_helper"
 
 class FakeConfig
-  attr_reader :written_token, :deleted
+  attr_reader :deleted
 
-  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml", auth_type: "test_token")
+  def initialize(token: nil, path: "/tmp/raindrop-cli/config.yml", auth_type: "oauth")
     @token = token
     @path = path
     @auth_type = auth_type
@@ -22,13 +22,6 @@ class FakeConfig
 
   def auth_type
     @auth_type.to_s
-  end
-
-  def save_access_token(token)
-    @written_token = token
-    @token = token
-    @auth_type = "test_token"
-    true
   end
 
   def delete_access_token
@@ -56,21 +49,12 @@ class RaindropCliTest < Minitest::Test
     [code, stdout.string, stderr.string, config]
   end
 
-  def test_auth_token_saves_token_from_stdin
-    code, stdout, stderr, store = run_cli(["auth", "token"], stdin: "secret-token\n")
-
-    assert_equal 0, code
-    assert_equal "secret-token", store.written_token
-    assert_includes stdout, "Token saved to /tmp/raindrop-cli/config.yml"
-    assert_empty stderr
-  end
-
-  def test_auth_token_rejects_empty_token
-    code, stdout, stderr, = run_cli(["auth", "token"], stdin: "\n")
+  def test_auth_token_is_not_supported
+    code, stdout, stderr, = run_cli(["auth", "token"])
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Token is empty."
+    assert_includes stderr, "Test token authentication is not supported."
   end
 
   def test_auth_status_uses_config
@@ -92,6 +76,17 @@ class RaindropCliTest < Minitest::Test
     assert_empty stderr
   end
 
+  def test_auth_status_rejects_test_token
+    code, stdout, stderr, = run_cli(
+      ["auth", "status"],
+      config: FakeConfig.new(token: "stored-token", auth_type: "test_token")
+    )
+
+    assert_equal 1, code
+    assert_includes stdout, "Test token authentication is not supported."
+    assert_empty stderr
+  end
+
   def test_auth_logout_deletes_stored_token
     store = FakeConfig.new(token: "stored-token")
     code, stdout, stderr, = run_cli(["auth", "logout"], config: store)
@@ -100,6 +95,49 @@ class RaindropCliTest < Minitest::Test
     assert store.deleted
     assert_includes stdout, "Token removed from /tmp/raindrop-cli/config.yml"
     assert_empty stderr
+  end
+
+  def test_auth_login_parses_options
+    cli = RaindropCli::CLI.new([])
+    argv = [
+      "--client-id", "client-id",
+      "--client-secret", "client-secret",
+      "--code", "auth-code"
+    ]
+
+    options = cli.send(:parse_auth_login_options, argv)
+
+    assert_equal "client-id", options.fetch(:client_id)
+    assert_equal "client-secret", options.fetch(:client_secret)
+    assert_nil options.fetch(:redirect_uri)
+    assert_equal "auth-code", options.fetch(:code)
+    assert_empty argv
+  end
+
+  def test_auth_login_requires_client_id
+    code, stdout, stderr, = run_cli([
+      "auth", "login",
+      "--client-secret", "client-secret",
+      "--code", "auth-code"
+    ])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: client-id"
+  end
+
+  def test_auth_login_rejects_invalid_redirect_uri
+    code, stdout, stderr, = run_cli([
+      "auth", "login",
+      "--client-id", "client-id",
+      "--client-secret", "client-secret",
+      "--redirect-uri", "not-a-url",
+      "--code", "auth-code"
+    ])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: not-a-url"
   end
 
   def test_config_path_prints_config_path
@@ -123,8 +161,24 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 0, code
     assert_equal <<~OUTPUT, stdout
-      Auth: test_token
+      Auth: oauth
       Access token: [REDACTED]
+    OUTPUT
+    assert_empty stderr
+    refute_includes stdout, "secret-token"
+  end
+
+  def test_config_prints_unsupported_auth_type
+    code, stdout, stderr, = run_cli(
+      ["config"],
+      config: FakeConfig.new(token: "secret-token", auth_type: "test_token")
+    )
+
+    assert_equal 0, code
+    assert_equal <<~OUTPUT, stdout
+      Auth: unsupported
+      Type: test_token
+      Run `raindrop auth login`.
     OUTPUT
     assert_empty stderr
     refute_includes stdout, "secret-token"
@@ -160,7 +214,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_add_rejects_invalid_url
@@ -257,7 +311,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_search_rejects_limit_less_than_one
@@ -453,7 +507,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_get_rejects_extra_arguments
@@ -544,7 +598,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_delete_rejects_extra_arguments
@@ -596,7 +650,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_tags_rejects_arguments
@@ -612,7 +666,7 @@ class RaindropCliTest < Minitest::Test
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
   def test_collections_rejects_arguments
