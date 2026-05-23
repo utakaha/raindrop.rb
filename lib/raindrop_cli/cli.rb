@@ -38,6 +38,8 @@ module RaindropCli
         search(@argv)
       when "get"
         get(@argv)
+      when "delete"
+        delete(@argv)
       when "tags"
         tags(@argv)
       when "collections"
@@ -223,6 +225,17 @@ module RaindropCli
       SUCCESS
     end
 
+    def delete(argv)
+      options = parse_delete_options(argv)
+      id = parse_raindrop_id(argv.shift)
+      reject_arguments!(argv)
+
+      payload = authenticated_client.delete_raindrop(id)
+      print_delete_result(id, payload, json: options.fetch(:json))
+
+      SUCCESS
+    end
+
     def tags(argv)
       reject_arguments!(argv)
 
@@ -300,6 +313,17 @@ module RaindropCli
     end
 
     def parse_get_options(argv)
+      options = { json: false }
+      parser = OptionParser.new do |opts|
+        opts.on("--json") do
+          options[:json] = true
+        end
+      end
+      parser.parse!(argv)
+      options
+    end
+
+    def parse_delete_options(argv)
       options = { json: false }
       parser = OptionParser.new do |opts|
         opts.on("--json") do
@@ -474,6 +498,14 @@ module RaindropCli
       @stdout.puts JSON.generate(item)
     end
 
+    def print_delete_result(id, payload, json: false)
+      if json
+        print_json_item(payload)
+      else
+        @stdout.puts "Deleted raindrop: #{id}"
+      end
+    end
+
     def print_raindrop_detail(item)
       id = item["_id"].to_s
       link = item["link"].to_s
@@ -535,6 +567,7 @@ module RaindropCli
           add     Add a raindrop
           auth    Manage authentication
           config  Show configuration information
+          delete  Delete a saved raindrop
           get     Show a saved raindrop
           search  Search saved raindrops
           tags    List tags

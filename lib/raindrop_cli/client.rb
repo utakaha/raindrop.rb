@@ -44,6 +44,13 @@ module RaindropCli
       raise ApiError, "API request failed: #{e.message}"
     end
 
+    def delete_raindrop(id)
+      response = @connection.delete("raindrop/#{id}")
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     def tags(collection_id: 0)
       response = @connection.get("tags/#{collection_id}")
       handle_response(response)

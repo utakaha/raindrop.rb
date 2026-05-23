@@ -531,6 +531,66 @@ class RaindropCliTest < Minitest::Test
     assert_equal item, JSON.parse(stdout.string)
   end
 
+  def test_delete_requires_id
+    code, stdout, stderr, = run_cli(["delete"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: ID"
+  end
+
+  def test_delete_requires_authentication
+    code, stdout, stderr, = run_cli(["delete", "1668242775"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth token`."
+  end
+
+  def test_delete_rejects_extra_arguments
+    code, stdout, stderr, = run_cli(["delete", "1668242775", "extra"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
+
+  def test_delete_rejects_invalid_id
+    code, stdout, stderr, = run_cli(["delete", "abc"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: abc"
+  end
+
+  def test_delete_parses_json_option
+    cli = RaindropCli::CLI.new([])
+    argv = ["--json", "1668242775"]
+
+    options = cli.send(:parse_delete_options, argv)
+
+    assert options.fetch(:json)
+    assert_equal ["1668242775"], argv
+  end
+
+  def test_delete_prints_human_readable_result
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+
+    cli.send(:print_delete_result, 1_668_242_775, { "result" => true })
+
+    assert_equal "Deleted raindrop: 1668242775\n", stdout.string
+  end
+
+  def test_delete_prints_json_result
+    stdout = StringIO.new
+    cli = RaindropCli::CLI.new([], stdout: stdout)
+
+    cli.send(:print_delete_result, 1_668_242_775, { "result" => true }, json: true)
+
+    assert_equal({ "result" => true }, JSON.parse(stdout.string))
+  end
+
   def test_tags_requires_authentication
     code, stdout, stderr, = run_cli(["tags"])
 
