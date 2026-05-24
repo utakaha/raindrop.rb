@@ -203,6 +203,78 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_update_raindrop_sends_authorized_json_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.put("/rest/v1/raindrop/1668242775") do |env|
+        assert_equal "Bearer secret-token", env.request_headers["Authorization"]
+        assert_equal "application/json", env.request_headers["Accept"]
+        assert_equal "application/json", env.request_headers["Content-Type"]
+        assert_equal(
+          {
+            "title" => "Ruby",
+            "excerpt" => "Ruby language",
+            "note" => "Read later",
+            "tags" => ["ruby", "docs"],
+            "collection" => { "$id" => 55596991 }
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "item" => {
+              "_id" => 1668242775,
+              "title" => "Ruby",
+              "link" => "https://www.ruby-lang.org/"
+            }
+          }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: "secret-token").update_raindrop(
+      1_668_242_775,
+      title: "Ruby",
+      excerpt: "Ruby language",
+      note: "Read later",
+      tags: ["ruby", "docs"],
+      collection_id: 55_596_991
+    )
+
+    assert_equal 1_668_242_775, payload.fetch("item").fetch("_id")
+    stubs.verify_stubbed_calls
+  end
+
+  def test_update_raindrop_omits_unspecified_fields
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.put("/rest/v1/raindrop/1668242775") do |env|
+        assert_equal(
+          {
+            "title" => "Ruby"
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { "Content-Type" => "application/json" },
+          {
+            "item" => {
+              "_id" => 1668242775,
+              "title" => "Ruby"
+            }
+          }.to_json
+        ]
+      end
+    end
+
+    client_with(stubs, token: "secret-token").update_raindrop(1_668_242_775, title: "Ruby")
+
+    stubs.verify_stubbed_calls
+  end
+
   def test_delete_raindrop_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
       stub.delete("/rest/v1/raindrop/1668242775") do |env|

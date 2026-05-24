@@ -45,6 +45,16 @@ module Raindrop
       raise ApiError, "API request failed: #{e.message}"
     end
 
+    def update_raindrop(id, title: nil, excerpt: nil, note: nil, tags: nil, collection_id: nil)
+      response = @connection.put("raindrop/#{id}") do |request|
+        request.headers["Content-Type"] = "application/json"
+        request.body = JSON.generate(update_raindrop_body(title, excerpt, note, tags, collection_id))
+      end
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     def delete_raindrop(id)
       response = @connection.delete("raindrop/#{id}")
       handle_response(response)
@@ -91,6 +101,16 @@ module Raindrop
       body["excerpt"] = excerpt unless excerpt.to_s.empty?
       body["note"] = note unless note.to_s.empty?
       body["tags"] = tags unless tags.empty?
+      body["collection"] = { "$id" => collection_id } unless collection_id.nil?
+      body
+    end
+
+    def update_raindrop_body(title, excerpt, note, tags, collection_id)
+      body = {}
+      body["title"] = title unless title.to_s.empty?
+      body["excerpt"] = excerpt unless excerpt.to_s.empty?
+      body["note"] = note unless note.to_s.empty?
+      body["tags"] = tags unless tags.nil?
       body["collection"] = { "$id" => collection_id } unless collection_id.nil?
       body
     end

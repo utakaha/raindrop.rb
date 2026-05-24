@@ -49,6 +49,8 @@ module Raindrop
         search(@argv)
       when "get"
         get(@argv)
+      when "update"
+        update(@argv)
       when "delete"
         delete(@argv)
       when "tags"
@@ -272,6 +274,31 @@ module Raindrop
       SUCCESS
     end
 
+    def update(argv)
+      options = parse_update_options(argv)
+      id = parse_raindrop_id(argv.shift)
+      reject_arguments!(argv)
+
+      payload = authenticated_client.update_raindrop(
+        id,
+        title: options.fetch(:title),
+        excerpt: options.fetch(:description),
+        note: options.fetch(:note),
+        tags: update_tags(options),
+        collection_id: options.fetch(:collection_id)
+      )
+      item = payload.fetch("item", {})
+
+      if options.fetch(:json)
+        print_json_item(item)
+      else
+        print_update_result(id, options)
+        print_raindrop_detail(item) unless item.empty?
+      end
+
+      SUCCESS
+    end
+
     def delete(argv)
       options = parse_delete_options(argv)
       id = parse_raindrop_id(argv.shift)
@@ -395,6 +422,38 @@ module Raindrop
       options
     end
 
+    def parse_update_options(argv)
+      options = { json: false, title: nil, description: nil, note: nil, tags: [], collection_id: nil }
+      parser = OptionParser.new do |opts|
+        opts.on("--json") do
+          options[:json] = true
+        end
+
+        opts.on("--title TITLE") do |title|
+          options[:title] = title
+        end
+
+        opts.on("--description DESCRIPTION") do |description|
+          options[:description] = description
+        end
+
+        opts.on("--note NOTE") do |note|
+          options[:note] = note
+        end
+
+        opts.on("--tag TAG") do |tag|
+          options[:tags] << tag
+        end
+
+        opts.on("--collection ID", Integer) do |collection_id|
+          options[:collection_id] = collection_id
+        end
+      end
+      parser.parse!(argv)
+      validate_update_options!(options)
+      options
+    end
+
     def parse_delete_options(argv)
       options = { json: false }
       parser = OptionParser.new do |opts|
@@ -431,6 +490,32 @@ module Raindrop
       validate_optional_text!("description", options.fetch(:description))
       validate_optional_text!("note", options.fetch(:note))
       raise OptionParser::InvalidArgument, "tag" unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
+    end
+
+    def validate_update_options!(options)
+      validate_optional_text!("title", options.fetch(:title))
+      validate_optional_text!("description", options.fetch(:description))
+      validate_optional_text!("note", options.fetch(:note))
+      raise OptionParser::InvalidArgument, "tag" unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
+
+      return if update_requested?(options)
+
+      raise OptionParser::MissingArgument, "update option"
+    end
+
+    def update_requested?(options)
+      !options.fetch(:title).nil? ||
+        !options.fetch(:description).nil? ||
+        !options.fetch(:note).nil? ||
+        !options.fetch(:tags).empty? ||
+        !options.fetch(:collection_id).nil?
+    end
+
+    def update_tags(options)
+      tags = options.fetch(:tags)
+      return nil if tags.empty?
+
+      tags
     end
 
     def validate_optional_text!(name, value)
@@ -610,6 +695,22 @@ module Raindrop
       end
     end
 
+    def print_update_result(id, options)
+      @stdout.puts "Updated raindrop: #{id}"
+      @stdout.puts "Changed: #{update_change_labels(options).join(", ")}"
+      @stdout.puts
+    end
+
+    def update_change_labels(options)
+      labels = []
+      labels << "title" unless options.fetch(:title).nil?
+      labels << "description" unless options.fetch(:description).nil?
+      labels << "note" unless options.fetch(:note).nil?
+      labels << "tags" unless options.fetch(:tags).empty?
+      labels << "collection" unless options.fetch(:collection_id).nil?
+      labels
+    end
+
     def print_raindrop_detail(item)
       id = item["_id"].to_s
       link = item["link"].to_s
@@ -663,6 +764,7 @@ module Raindrop
           delete  Delete a saved raindrop
           get     Show a saved raindrop
           search  Search saved raindrops
+          update  Update a saved raindrop
           tags    List tags
           collections
                   List collections

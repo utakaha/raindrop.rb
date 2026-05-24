@@ -656,6 +656,121 @@ class RaindropTest < Minitest::Test
     assert_equal item, JSON.parse(stdout.string)
   end
 
+  def test_update_requires_id
+    code, stdout, stderr, = run_cli(["update", "--title", "Ruby"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: ID"
+  end
+
+  def test_update_requires_authentication
+    code, stdout, stderr, = run_cli(["update", "1668242775", "--title", "Ruby"])
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
+  end
+
+  def test_update_requires_update_option
+    code, stdout, stderr, = run_cli(["update", "1668242775"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: update option"
+  end
+
+  def test_update_rejects_extra_arguments
+    code, stdout, stderr, = run_cli(
+      ["update", "1668242775", "--title", "Ruby", "extra"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: extra"
+  end
+
+  def test_update_rejects_invalid_id
+    code, stdout, stderr, = run_cli(["update", "abc", "--title", "Ruby"], config: FakeConfig.new(token: "stored-token"))
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: abc"
+  end
+
+  def test_update_parses_optional_fields
+    cli = Raindrop::CLI.new([])
+    argv = [
+      "--title", "Ruby",
+      "--description", "Ruby language",
+      "--note", "Read later",
+      "--tag", "ruby",
+      "--tag", "docs",
+      "--collection", "55596991",
+      "--json",
+      "1668242775"
+    ]
+
+    options = cli.send(:parse_update_options, argv)
+
+    assert_equal "Ruby", options.fetch(:title)
+    assert_equal "Ruby language", options.fetch(:description)
+    assert_equal "Read later", options.fetch(:note)
+    assert_equal ["ruby", "docs"], options.fetch(:tags)
+    assert_equal 55_596_991, options.fetch(:collection_id)
+    assert options.fetch(:json)
+    assert_equal ["1668242775"], argv
+  end
+
+  def test_update_rejects_empty_title
+    code, stdout, stderr, = run_cli(
+      ["update", "1668242775", "--title", ""],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: title"
+  end
+
+  def test_update_rejects_empty_tag
+    code, stdout, stderr, = run_cli(
+      ["update", "1668242775", "--tag", ""],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: tag"
+  end
+
+  def test_update_tags_returns_nil_when_tags_are_not_specified
+    cli = Raindrop::CLI.new([])
+
+    assert_nil cli.send(:update_tags, { tags: [] })
+  end
+
+  def test_update_prints_human_readable_result
+    stdout = StringIO.new
+    cli = Raindrop::CLI.new([], stdout: stdout)
+    options = {
+      title: "Ruby",
+      description: nil,
+      note: "Read later",
+      tags: ["ruby"],
+      collection_id: nil
+    }
+
+    cli.send(:print_update_result, 1_668_242_775, options)
+
+    assert_equal <<~OUTPUT, stdout.string
+      Updated raindrop: 1668242775
+      Changed: title, note, tags
+
+    OUTPUT
+  end
+
   def test_delete_requires_id
     code, stdout, stderr, = run_cli(["delete"], config: FakeConfig.new(token: "stored-token"))
 

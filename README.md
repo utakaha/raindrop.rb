@@ -2,7 +2,7 @@
 
 `raindrop` is a Ruby command line client for [Raindrop.io](https://raindrop.io/).
 
-It is built for everyday bookmark workflows from the terminal: authenticate with OAuth, search saved raindrops, inspect an item, add new links, delete old ones, and list tags or collections.
+It is built for everyday bookmark workflows from the terminal: authenticate with OAuth, search saved raindrops, inspect an item, add new links, update metadata, delete old ones, and list tags or collections.
 
 ## Installation
 
@@ -50,6 +50,12 @@ Add a new link:
 
 ```sh
 raindrop add https://www.ruby-lang.org/
+```
+
+Update an existing raindrop:
+
+```sh
+raindrop update 1352782792 --title "Ruby" --tag ruby
 ```
 
 ## Authentication
@@ -185,6 +191,28 @@ Output JSON:
 
 ```sh
 raindrop add https://www.ruby-lang.org/ --json
+```
+
+### Update
+
+Update a saved raindrop by ID:
+
+```sh
+raindrop update 1352782792 \
+  --title Ruby \
+  --description "Ruby language" \
+  --note "Read later" \
+  --tag ruby \
+  --tag docs \
+  --collection 55596991
+```
+
+At least one update option is required. Tags replace the raindrop's tag list with the tags passed on the command line.
+
+Output JSON:
+
+```sh
+raindrop update 1352782792 --title Ruby --json
 ```
 
 ### Delete
