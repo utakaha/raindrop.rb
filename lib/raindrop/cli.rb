@@ -16,6 +16,16 @@ module Raindrop
     FAILURE = 1
     DEFAULT_SEARCH_LIMIT = 50
     MAX_SEARCH_LIMIT = 50
+    SEARCH_SORTS = %w[
+      -created
+      created
+      score
+      -sort
+      title
+      -title
+      domain
+      -domain
+    ].freeze
 
     def initialize(argv, stdin: $stdin, stdout: $stdout, stderr: $stderr, config: nil)
       @argv = argv.dup
@@ -229,13 +239,15 @@ module Raindrop
           authenticated_client,
           query,
           collection_id: search_collection_id(options),
+          sort: options.fetch(:sort),
           json: options.fetch(:json)
         )
       else
         payload = authenticated_client.search_raindrops(
           query,
           collection_id: search_collection_id(options),
-          perpage: options.fetch(:limit)
+          perpage: options.fetch(:limit),
+          sort: options.fetch(:sort)
         )
         print_search_items(payload.fetch("items", []), json: options.fetch(:json))
       end
@@ -440,7 +452,7 @@ module Raindrop
     end
 
     def parse_search_options(argv)
-      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, json: false, tags: [] }
+      options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, json: false, tags: [], sort: nil }
       limit_option_used = false
       parser = OptionParser.new do |opts|
         opts.on("--all") do
@@ -463,9 +475,13 @@ module Raindrop
         opts.on("--tag TAG") do |tag|
           options[:tags] << tag
         end
+
+        opts.on("--sort SORT") do |sort|
+          options[:sort] = sort
+        end
       end
       parser.parse!(argv)
-      validate_search_options!(options, limit_option_used)
+      validate_search_options!(options, limit_option_used, argv)
       options
     end
 
@@ -475,13 +491,29 @@ module Raindrop
       [query, tag_query].reject(&:empty?).join(" ")
     end
 
-    def validate_search_options!(options, limit_option_used)
+    def validate_search_options!(options, limit_option_used, argv)
       validate_limit!(options.fetch(:limit))
       validate_tags!(options.fetch(:tags))
+      validate_search_sort!(options.fetch(:sort), argv)
 
       if options.fetch(:all) && limit_option_used
         raise SearchError, "`--all` cannot be used with `--limit`."
       end
+    end
+
+    def validate_search_sort!(sort, argv)
+      return if sort.nil?
+
+      unless SEARCH_SORTS.include?(sort)
+        raise SearchError, "Search sort must be one of: #{SEARCH_SORTS.join(", ")}."
+      end
+
+      return unless sort == "score"
+
+      query = argv.join(" ").strip
+      return unless query.empty?
+
+      raise SearchError, "`--sort score` requires a search query."
     end
 
     def search_query_required?(options)
@@ -511,14 +543,14 @@ module Raindrop
       "##{tag}"
     end
 
-    def search_all(client, query, collection_id:, json:)
+    def search_all(client, query, collection_id:, sort:, json:)
       page = 0
       fetched = 0
       found = false
       collected_items = []
 
       loop do
-        payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page)
+        payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page, sort: sort)
         items = payload.fetch("items", [])
         break if items.empty?
 

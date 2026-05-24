@@ -14,13 +14,14 @@ module Raindrop
       @connection = connection || default_connection
     end
 
-    def search_raindrops(query, collection_id: 0, perpage: 10, page: 0)
+    def search_raindrops(query, collection_id: 0, perpage: 10, page: 0, sort: nil)
       response = @connection.get("raindrops/#{collection_id}") do |request|
         request.params.update(
           "search" => query,
           "perpage" => perpage,
           "page" => page
         )
+        request.params["sort"] = sort unless sort.to_s.empty?
       end
       handle_response(response)
     rescue Faraday::ConnectionFailed => e

@@ -408,6 +408,50 @@ class RaindropTest < Minitest::Test
     assert_equal ["ruby"], argv
   end
 
+  def test_search_parses_sort_option
+    cli = Raindrop::CLI.new([])
+    argv = ["ruby", "--sort", "-created"]
+
+    options = cli.send(:parse_search_options, argv)
+
+    assert_equal "-created", options.fetch(:sort)
+    assert_equal ["ruby"], argv
+  end
+
+  def test_search_accepts_documented_sort_options
+    cli = Raindrop::CLI.new([])
+
+    Raindrop::CLI::SEARCH_SORTS.each do |sort|
+      argv = sort == "score" ? ["ruby", "--sort", sort] : ["--collection", "123", "--sort", sort]
+
+      options = cli.send(:parse_search_options, argv)
+
+      assert_equal sort, options.fetch(:sort)
+    end
+  end
+
+  def test_search_rejects_unknown_sort
+    code, stdout, stderr, = run_cli(
+      ["search", "ruby", "--sort", "unknown"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Search sort must be one of:"
+  end
+
+  def test_search_rejects_score_sort_without_query
+    code, stdout, stderr, = run_cli(
+      ["search", "--collection", "123", "--sort", "score"],
+      config: FakeConfig.new(token: "stored-token")
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "`--sort score` requires a search query."
+  end
+
   def test_search_query_is_not_required_with_collection_option
     cli = Raindrop::CLI.new([])
     argv = ["--collection", "123"]

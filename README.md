@@ -107,6 +107,16 @@ By default, `search` returns up to 50 items. You can specify a smaller limit:
 raindrop search ruby --limit 20
 ```
 
+Sort results:
+
+```sh
+raindrop search ruby --sort score
+raindrop search ruby --sort -created
+raindrop search ruby --sort title
+```
+
+Supported sort values are `-created`, `created`, `score`, `-sort`, `title`, `-title`, `domain`, and `-domain`. `score` requires a search query.
+
 Fetch all matching pages with `--all`:
 
 ```sh

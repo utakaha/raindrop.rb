@@ -14,6 +14,7 @@ class ClientTest < Minitest::Test
         assert_equal "ruby docs", env.params.fetch("search")
         assert_equal "50", env.params.fetch("perpage")
         assert_equal "2", env.params.fetch("page")
+        assert_equal "-created", env.params.fetch("sort")
 
         [
           200,
@@ -35,7 +36,8 @@ class ClientTest < Minitest::Test
       "ruby docs",
       collection_id: 123,
       perpage: 50,
-      page: 2
+      page: 2,
+      sort: "-created"
     )
 
     assert_equal 123, payload.fetch("items").first.fetch("_id")
