@@ -645,13 +645,21 @@ module Raindrop
       fetched = 0
       collected_items = []
       total = nil
+      printed = false
 
       loop do
         payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page, sort: sort)
         items = payload.fetch("items", [])
         break if items.empty?
 
-        collected_items.concat(items)
+        if json
+          collected_items.concat(items)
+        else
+          count = payload["count"].to_i
+          total = count if count.positive?
+          print_search_items(items, total: total, summary_count: total || fetched + items.size, header: !printed)
+          printed = true
+        end
 
         fetched += items.size
         count = payload["count"].to_i
@@ -664,20 +672,20 @@ module Raindrop
 
       if json
         print_json_items(collected_items)
-      else
+      elsif !printed
         print_search_items(collected_items, total: total)
       end
     end
 
-    def print_search_items(items, json: false, total: nil)
+    def print_search_items(items, json: false, total: nil, summary_count: nil, header: true)
       return print_json_items(items) if json
 
       if items.empty?
         @stdout.puts "No raindrops found."
       else
         rows = items.map { |item| search_table_row(item) }
-        print_table_summary("raindrops", rows.size, total)
-        print_table(rows, SEARCH_TABLE_COLUMNS)
+        print_table_summary("raindrops", summary_count || rows.size, total) if header
+        print_table(rows, SEARCH_TABLE_COLUMNS, header: header, fixed_width: true)
       end
     end
 
@@ -783,10 +791,10 @@ module Raindrop
       @stdout.puts
     end
 
-    def print_table(rows, columns)
+    def print_table(rows, columns, header: true, fixed_width: false)
       normalized_rows = normalize_table_rows(rows, columns)
-      widths = table_widths(normalized_rows, columns)
-      print_table_line(columns.map { |column| column.fetch(:label) }, widths)
+      widths = table_widths(normalized_rows, columns, fixed_width: fixed_width)
+      print_table_line(columns.map { |column| column.fetch(:label) }, widths) if header
       normalized_rows.each do |row|
         print_table_line(columns.map { |column| row.fetch(column.fetch(:key)) }, widths)
       end
@@ -801,8 +809,10 @@ module Raindrop
       end
     end
 
-    def table_widths(rows, columns)
+    def table_widths(rows, columns, fixed_width: false)
       columns.map do |column|
+        next [display_width(column.fetch(:label)), column.fetch(:max_width)].max if fixed_width
+
         key = column.fetch(:key)
         values = rows.map { |row| row.fetch(key) }
         ([column.fetch(:label)] + values).map { |value| display_width(value) }.max

@@ -533,7 +533,7 @@ class RaindropTest < Minitest::Test
     assert_equal <<~OUTPUT, stdout.string
       Showing 2 of 2 raindrops
 
-      ID          TITLE                                                         URL                                                    SAVED AT
+      ID          TITLE                                                         URL                                                           SAVED AT
       1668242775  Example Ruby Documentation                                    https://example.com/ruby-documentation
       1667301016  Example deployment guide with a long title that should be...  https://example.com/articles/example-deployment-guide
     OUTPUT
@@ -573,6 +573,37 @@ class RaindropTest < Minitest::Test
     cli.send(:print_search_items, [], json: true)
 
     assert_equal "[]\n", stdout.string
+  end
+
+  def test_search_all_prints_each_page_as_it_is_loaded
+    stdout = StringIO.new
+    cli = Raindrop::CLI.new([], stdout: stdout)
+    cli.define_singleton_method(:sleep) { |_seconds| }
+    client = Object.new
+    test_case = self
+    client.define_singleton_method(:search_raindrops) do |_query, collection_id:, perpage:, page:, sort:|
+      test_case.assert_equal 123, collection_id
+      test_case.assert_equal 50, perpage
+      test_case.assert_nil sort
+
+      if page == 1
+        test_case.assert_includes stdout.string, "First result"
+        test_case.assert_includes stdout.string, "https://example.com/first"
+      end
+
+      items = [
+        { "_id" => 1, "title" => "First result", "link" => "https://example.com/first" },
+        { "_id" => 2, "title" => "Second result", "link" => "https://example.com/second" }
+      ]
+      { "count" => 2, "items" => [items.fetch(page)] }
+    end
+
+    cli.send(:search_all, client, "ruby", collection_id: 123, sort: nil, json: false)
+
+    assert_equal 1, stdout.string.scan("ID").size
+    assert_includes stdout.string, "Showing 2 of 2 raindrops"
+    assert_includes stdout.string, "First result"
+    assert_includes stdout.string, "Second result"
   end
 
   def test_get_requires_id
