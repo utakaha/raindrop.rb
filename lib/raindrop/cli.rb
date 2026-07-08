@@ -3,6 +3,7 @@
 require "io/console"
 require "json"
 require "optparse"
+require "time"
 require "uri"
 
 require_relative "client"
@@ -16,6 +17,21 @@ module Raindrop
     FAILURE = 1
     DEFAULT_SEARCH_LIMIT = 50
     MAX_SEARCH_LIMIT = 50
+    SEARCH_TABLE_COLUMNS = [
+      { key: :id, label: "ID", max_width: 10 },
+      { key: :title, label: "TITLE", max_width: 60 },
+      { key: :url, label: "URL", max_width: 60 },
+      { key: :saved_at, label: "SAVED AT", max_width: 20 }
+    ].freeze
+    TAG_TABLE_COLUMNS = [
+      { key: :name, label: "TAG", max_width: 40 },
+      { key: :count, label: "COUNT", max_width: 10 }
+    ].freeze
+    COLLECTION_TABLE_COLUMNS = [
+      { key: :id, label: "ID", max_width: 10 },
+      { key: :title, label: "TITLE", max_width: 60 },
+      { key: :count, label: "COUNT", max_width: 10 }
+    ].freeze
     SEARCH_SORTS = %w[
       -created
       created
@@ -251,7 +267,7 @@ module Raindrop
           perpage: options.fetch(:limit),
           sort: options.fetch(:sort)
         )
-        print_search_items(payload.fetch("items", []), json: options.fetch(:json))
+        print_search_items(payload.fetch("items", []), json: options.fetch(:json), total: payload["count"])
       end
 
       SUCCESS
@@ -319,9 +335,7 @@ module Raindrop
       if items.empty?
         @stdout.puts "No tags found."
       else
-        items.each do |item|
-          @stdout.puts "#{item["_id"]}\t#{item["count"]}"
-        end
+        print_tags(items)
       end
 
       SUCCESS
@@ -337,9 +351,7 @@ module Raindrop
       if items.empty?
         @stdout.puts "No collections found."
       else
-        items.each do |item|
-          @stdout.puts "#{item["_id"]}\t#{item["title"]}\t#{item["count"]}"
-        end
+        print_collections(items)
       end
 
       SUCCESS
@@ -631,23 +643,19 @@ module Raindrop
     def search_all(client, query, collection_id:, sort:, json:)
       page = 0
       fetched = 0
-      found = false
       collected_items = []
+      total = nil
 
       loop do
         payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page, sort: sort)
         items = payload.fetch("items", [])
         break if items.empty?
 
-        if json
-          collected_items.concat(items)
-        else
-          print_search_items(items)
-        end
-        found = true
+        collected_items.concat(items)
 
         fetched += items.size
         count = payload["count"].to_i
+        total = count if count.positive?
         break if count.positive? && fetched >= count
 
         page += 1
@@ -657,26 +665,43 @@ module Raindrop
       if json
         print_json_items(collected_items)
       else
-        @stdout.puts "No raindrops found." unless found
+        print_search_items(collected_items, total: total)
       end
     end
 
-    def print_search_items(items, json: false)
+    def print_search_items(items, json: false, total: nil)
       return print_json_items(items) if json
 
       if items.empty?
         @stdout.puts "No raindrops found."
       else
-        items.each do |item|
-          id = item["_id"].to_s
-          link = item["link"].to_s
-          title = item["title"].to_s.strip
-          title = link if title.empty?
-          @stdout.puts "#{id}  #{title}"
-          @stdout.puts "            #{link}"
-          @stdout.puts
-        end
+        rows = items.map { |item| search_table_row(item) }
+        print_table_summary("raindrops", rows.size, total)
+        print_table(rows, SEARCH_TABLE_COLUMNS)
       end
+    end
+
+    def print_tags(items)
+      rows = items.map do |item|
+        {
+          name: item["_id"].to_s,
+          count: item["count"].to_s
+        }
+      end
+      print_table_summary("tags", rows.size)
+      print_table(rows, TAG_TABLE_COLUMNS)
+    end
+
+    def print_collections(items)
+      rows = items.map do |item|
+        {
+          id: item["_id"].to_s,
+          title: item["title"].to_s,
+          count: item["count"].to_s
+        }
+      end
+      print_table_summary("collections", rows.size)
+      print_table(rows, COLLECTION_TABLE_COLUMNS)
     end
 
     def print_json_items(items)
@@ -726,7 +751,7 @@ module Raindrop
       @stdout.puts "Title: #{title}" unless title.empty?
       @stdout.puts "URL: #{link}" unless link.empty?
       @stdout.puts "Tags: #{tags.join(", ")}" unless tags.empty?
-      @stdout.puts "Created: #{created}" unless created.empty?
+      @stdout.puts "Saved: #{created}" unless created.empty?
       @stdout.puts "Updated: #{updated}" unless updated.empty?
 
       print_detail_text("Description", excerpt)
@@ -738,6 +763,164 @@ module Raindrop
 
       @stdout.puts "#{label}:"
       @stdout.puts text
+    end
+
+    def search_table_row(item)
+      link = item["link"].to_s
+      title = item["title"].to_s.strip
+      title = link if title.empty?
+      {
+        id: item["_id"].to_s,
+        title: title,
+        url: link,
+        saved_at: relative_time(item["created"])
+      }
+    end
+
+    def print_table_summary(name, shown, total = nil)
+      total = shown if total.nil? || total.to_s.empty?
+      @stdout.puts "Showing #{shown} of #{total} #{name}"
+      @stdout.puts
+    end
+
+    def print_table(rows, columns)
+      normalized_rows = normalize_table_rows(rows, columns)
+      widths = table_widths(normalized_rows, columns)
+      print_table_line(columns.map { |column| column.fetch(:label) }, widths)
+      normalized_rows.each do |row|
+        print_table_line(columns.map { |column| row.fetch(column.fetch(:key)) }, widths)
+      end
+    end
+
+    def normalize_table_rows(rows, columns)
+      rows.map do |row|
+        columns.each_with_object({}) do |column, normalized_row|
+          key = column.fetch(:key)
+          normalized_row[key] = truncate_table_value(row.fetch(key, ""), column.fetch(:max_width))
+        end
+      end
+    end
+
+    def table_widths(rows, columns)
+      columns.map do |column|
+        key = column.fetch(:key)
+        values = rows.map { |row| row.fetch(key) }
+        ([column.fetch(:label)] + values).map { |value| display_width(value) }.max
+      end
+    end
+
+    def print_table_line(values, widths)
+      line = values.each_with_index.map do |value, index|
+        index == values.size - 1 ? value : ljust_display(value, widths.fetch(index))
+      end.join("  ")
+      @stdout.puts line.rstrip
+    end
+
+    def truncate_table_value(value, max_width)
+      value = value.to_s.gsub(/\s+/, " ").strip
+      return value if display_width(value) <= max_width
+      return truncate_display(value, max_width) if max_width <= 3
+
+      "#{truncate_display(value, max_width - 3)}..."
+    end
+
+    def truncate_display(value, max_width)
+      width = 0
+      value.grapheme_clusters.each_with_object(+"") do |cluster, truncated|
+        cluster_width = display_cluster_width(cluster)
+        break truncated if width + cluster_width > max_width
+
+        truncated << cluster
+        width += cluster_width
+      end
+    end
+
+    def ljust_display(value, width)
+      value = value.to_s
+      value + (" " * [width - display_width(value), 0].max)
+    end
+
+    def display_width(value)
+      value.to_s.grapheme_clusters.sum { |cluster| display_cluster_width(cluster) }
+    end
+
+    def display_cluster_width(cluster)
+      return 2 if emoji_display_cluster?(cluster)
+
+      cluster.each_char.sum { |char| display_char_width(char) }
+    end
+
+    def emoji_display_cluster?(cluster)
+      cluster.each_char.any? do |char|
+        codepoint = char.ord
+        emoji_display_codepoint?(codepoint) || codepoint == 0xFE0F
+      end
+    end
+
+    def display_char_width(char)
+      return 0 if char.match?(/[\p{Cf}\p{Mn}]/)
+
+      codepoint = char.ord
+      return 2 if wide_display_codepoint?(codepoint)
+
+      1
+    end
+
+    def wide_display_codepoint?(codepoint)
+      [
+        (0x1100..0x115F),   # Hangul Jamo init. consonants.
+        (0x2329..0x232A),   # Wide angle brackets.
+        (0x2E80..0xA4CF),   # CJK radicals, kana, bopomofo, hangul, and ideographs.
+        (0xAC00..0xD7A3),   # Hangul syllables.
+        (0xF900..0xFAFF),   # CJK compatibility ideographs.
+        (0xFE10..0xFE19),   # Vertical punctuation.
+        (0xFE30..0xFE6F),   # CJK compatibility forms and small variants.
+        (0xFF00..0xFF60),   # Fullwidth ASCII variants.
+        (0xFFE0..0xFFE6),   # Fullwidth symbol variants.
+        (0x1F300..0x1FAFF)  # Emoji and pictographs commonly rendered double-width.
+      ].any? { |range| range.cover?(codepoint) }
+    end
+
+    def emoji_display_codepoint?(codepoint)
+      [
+        (0x1F1E6..0x1F1FF), # Regional indicator symbols used for flags.
+        (0x1F300..0x1FAFF)  # Emoji and pictographs.
+      ].any? { |range| range.cover?(codepoint) }
+    end
+
+    def relative_time(value, now: Time.now)
+      time = Time.parse(value.to_s)
+      seconds = (now - time).to_i
+      suffix = seconds.negative? ? "from now" : "ago"
+      seconds = seconds.abs
+
+      amount, unit = relative_time_amount(seconds)
+      "about #{amount} #{unit} #{suffix}"
+    rescue ArgumentError
+      ""
+    end
+
+    def relative_time_amount(seconds)
+      return [seconds, pluralize_time_unit(seconds, "second")] if seconds < 60
+
+      minutes = seconds / 60
+      return [minutes, pluralize_time_unit(minutes, "minute")] if minutes < 60
+
+      hours = minutes / 60
+      return [hours, pluralize_time_unit(hours, "hour")] if hours < 24
+
+      days = hours / 24
+      return [days, pluralize_time_unit(days, "day")] if days < 30
+
+      months = days / 30
+      return [months, pluralize_time_unit(months, "month")] if months < 12
+
+      years = days / 365
+      [years, pluralize_time_unit(years, "year")]
+    end
+
+    def pluralize_time_unit(amount, unit)
+      amount == 1 ? unit : "#{unit}s"
     end
 
     def unique_items_by_id(items)

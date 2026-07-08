@@ -237,7 +237,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_add_requires_authentication
-    code, stdout, stderr, = run_cli(["add", "https://www.ruby-lang.org/"])
+    code, stdout, stderr, = run_cli(["add", "https://example.com/ruby"])
 
     assert_equal 1, code
     assert_empty stdout
@@ -262,7 +262,7 @@ class RaindropTest < Minitest::Test
 
   def test_add_rejects_extra_arguments
     code, stdout, stderr, = run_cli(
-      ["add", "https://www.ruby-lang.org/", "extra"],
+      ["add", "https://example.com/ruby", "extra"],
       config: FakeConfig.new(token: "stored-token")
     )
 
@@ -273,12 +273,12 @@ class RaindropTest < Minitest::Test
 
   def test_add_parses_json_option
     cli = Raindrop::CLI.new([])
-    argv = ["--json", "https://www.ruby-lang.org/"]
+    argv = ["--json", "https://example.com/ruby"]
 
     options = cli.send(:parse_add_options, argv)
 
     assert options.fetch(:json)
-    assert_equal ["https://www.ruby-lang.org/"], argv
+    assert_equal ["https://example.com/ruby"], argv
   end
 
   def test_add_parses_optional_fields
@@ -290,7 +290,7 @@ class RaindropTest < Minitest::Test
       "--tag", "ruby",
       "--tag", "docs",
       "--collection", "55596991",
-      "https://www.ruby-lang.org/"
+      "https://example.com/ruby"
     ]
 
     options = cli.send(:parse_add_options, argv)
@@ -300,12 +300,12 @@ class RaindropTest < Minitest::Test
     assert_equal "Read later", options.fetch(:note)
     assert_equal ["ruby", "docs"], options.fetch(:tags)
     assert_equal 55_596_991, options.fetch(:collection_id)
-    assert_equal ["https://www.ruby-lang.org/"], argv
+    assert_equal ["https://example.com/ruby"], argv
   end
 
   def test_add_rejects_empty_title
     code, stdout, stderr, = run_cli(
-      ["add", "--title", "", "https://www.ruby-lang.org/"],
+      ["add", "--title", "", "https://example.com/ruby"],
       config: FakeConfig.new(token: "stored-token")
     )
 
@@ -316,7 +316,7 @@ class RaindropTest < Minitest::Test
 
   def test_add_rejects_empty_tag
     code, stdout, stderr, = run_cli(
-      ["add", "--tag", "", "https://www.ruby-lang.org/"],
+      ["add", "--tag", "", "https://example.com/ruby"],
       config: FakeConfig.new(token: "stored-token")
     )
 
@@ -518,26 +518,36 @@ class RaindropTest < Minitest::Test
     items = [
       {
         "_id" => 1668242775,
-        "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
-        "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+        "title" => "Example Ruby Documentation",
+        "link" => "https://example.com/ruby-documentation"
       },
       {
         "_id" => 1667301016,
-        "title" => "Rails 8.1 アプリ + SQLite3 を fly.io にデプロイして Litestream で Cloudflare R2 に...",
-        "link" => "https://techracho.bpsinc.jp/hachi8833/2026_03_31/157035"
+        "title" => "Example deployment guide with a long title that should be truncated in table output",
+        "link" => "https://example.com/articles/example-deployment-guide"
       }
     ]
 
     cli.send(:print_search_items, items)
 
     assert_equal <<~OUTPUT, stdout.string
-      1668242775  Introducing Aliki: A Modern Theme for Ruby Documentation
-                  https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/
+      Showing 2 of 2 raindrops
 
-      1667301016  Rails 8.1 アプリ + SQLite3 を fly.io にデプロイして Litestream で Cloudflare R2 に...
-                  https://techracho.bpsinc.jp/hachi8833/2026_03_31/157035
-
+      ID          TITLE                                                         URL                                                    SAVED AT
+      1668242775  Example Ruby Documentation                                    https://example.com/ruby-documentation
+      1667301016  Example deployment guide with a long title that should be...  https://example.com/articles/example-deployment-guide
     OUTPUT
+  end
+
+  def test_table_helpers_count_wide_characters
+    cli = Raindrop::CLI.new([])
+
+    assert_equal 6, cli.send(:display_width, "Rubyあ")
+    assert_equal 4, cli.send(:display_width, "“”─②")
+    assert_equal 4, cli.send(:display_width, "👨‍💻👩‍💻")
+    assert_equal "Rubyあ  ", cli.send(:ljust_display, "Rubyあ", 8)
+    assert_equal "Ruby 👨‍💻...", cli.send(:truncate_table_value, "Ruby 👨‍💻👩‍💻XX", 10)
+    assert_equal "日本...", cli.send(:truncate_table_value, "日本語Ruby", 7)
   end
 
   def test_search_prints_json_items
@@ -546,8 +556,8 @@ class RaindropTest < Minitest::Test
     items = [
       {
         "_id" => 1668242775,
-        "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
-        "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+        "title" => "Example Ruby Documentation",
+        "link" => "https://example.com/ruby-documentation"
       }
     ]
 
@@ -620,25 +630,25 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
       "_id" => 1668242775,
-      "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
-      "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/",
+      "title" => "Example Ruby Documentation",
+      "link" => "https://example.com/ruby-documentation",
       "tags" => ["ruby", "docs"],
       "created" => "2026-04-01T12:48:22.646Z",
       "lastUpdate" => "2026-04-01T12:48:22.646Z",
-      "excerpt" => "Ruby's documentation gets a fresh look."
+      "excerpt" => "Example documentation gets a fresh look."
     }
 
     cli.send(:print_raindrop_detail, item)
 
     assert_equal <<~OUTPUT, stdout.string
       ID: 1668242775
-      Title: Introducing Aliki: A Modern Theme for Ruby Documentation
-      URL: https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/
+      Title: Example Ruby Documentation
+      URL: https://example.com/ruby-documentation
       Tags: ruby, docs
-      Created: 2026-04-01T12:48:22.646Z
+      Saved: 2026-04-01T12:48:22.646Z
       Updated: 2026-04-01T12:48:22.646Z
       Description:
-      Ruby's documentation gets a fresh look.
+      Example documentation gets a fresh look.
     OUTPUT
   end
 
@@ -647,8 +657,8 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
       "_id" => 1668242775,
-      "title" => "Introducing Aliki: A Modern Theme for Ruby Documentation",
-      "link" => "https://railsatscale.com/2025-12-22-introducing-aliki-a-modern-theme-for-ruby-documentation/"
+      "title" => "Example Ruby Documentation",
+      "link" => "https://example.com/ruby-documentation"
     }
 
     cli.send(:print_json_item, item)
@@ -847,6 +857,24 @@ class RaindropTest < Minitest::Test
     assert_includes stderr, "invalid argument: extra"
   end
 
+  def test_tags_prints_human_readable_items
+    stdout = StringIO.new
+    cli = Raindrop::CLI.new([], stdout: stdout)
+
+    cli.send(:print_tags, [
+      { "_id" => "ruby", "count" => 12 },
+      { "_id" => "long tag name that should be truncated in table output", "count" => 3 }
+    ])
+
+    assert_equal <<~OUTPUT, stdout.string
+      Showing 2 of 2 tags
+
+      TAG                                       COUNT
+      ruby                                      12
+      long tag name that should be truncate...  3
+    OUTPUT
+  end
+
   def test_collections_requires_authentication
     code, stdout, stderr, = run_cli(["collections"])
 
@@ -861,6 +889,24 @@ class RaindropTest < Minitest::Test
     assert_equal 1, code
     assert_empty stdout
     assert_includes stderr, "invalid argument: extra"
+  end
+
+  def test_collections_prints_human_readable_items
+    stdout = StringIO.new
+    cli = Raindrop::CLI.new([], stdout: stdout)
+
+    cli.send(:print_collections, [
+      { "_id" => 55596991, "title" => "Development", "count" => 42 },
+      { "_id" => 123, "title" => "Ruby", "count" => 8 }
+    ])
+
+    assert_equal <<~OUTPUT, stdout.string
+      Showing 2 of 2 collections
+
+      ID        TITLE        COUNT
+      55596991  Development  42
+      123       Ruby         8
+    OUTPUT
   end
 
   def test_collections_deduplicates_items_by_id

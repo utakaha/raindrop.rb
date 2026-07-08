@@ -24,7 +24,7 @@ class ClientTest < Minitest::Test
               {
                 "_id" => 123,
                 "title" => "Ruby",
-                "link" => "https://www.ruby-lang.org/"
+                "link" => "https://example.com/ruby"
               }
             ]
           }.to_json
@@ -114,7 +114,7 @@ class ClientTest < Minitest::Test
             "item" => {
               "_id" => 1668242775,
               "title" => "Ruby",
-              "link" => "https://www.ruby-lang.org/"
+              "link" => "https://example.com/ruby"
             }
           }.to_json
         ]
@@ -135,7 +135,7 @@ class ClientTest < Minitest::Test
         assert_equal "application/json", env.request_headers["Content-Type"]
         assert_equal(
           {
-            "link" => "https://www.ruby-lang.org/",
+            "link" => "https://example.com/ruby",
             "pleaseParse" => {}
           },
           JSON.parse(env.body)
@@ -148,14 +148,14 @@ class ClientTest < Minitest::Test
             "item" => {
               "_id" => 123,
               "title" => "Ruby",
-              "link" => "https://www.ruby-lang.org/"
+              "link" => "https://example.com/ruby"
             }
           }.to_json
         ]
       end
     end
 
-    payload = client_with(stubs, token: "secret-token").create_raindrop("https://www.ruby-lang.org/")
+    payload = client_with(stubs, token: "secret-token").create_raindrop("https://example.com/ruby")
 
     assert_equal 123, payload.fetch("item").fetch("_id")
     stubs.verify_stubbed_calls
@@ -166,7 +166,7 @@ class ClientTest < Minitest::Test
       stub.post("/rest/v1/raindrop") do |env|
         assert_equal(
           {
-            "link" => "https://www.ruby-lang.org/",
+            "link" => "https://example.com/ruby",
             "pleaseParse" => {},
             "title" => "Ruby",
             "excerpt" => "Ruby language",
@@ -184,7 +184,7 @@ class ClientTest < Minitest::Test
             "item" => {
               "_id" => 123,
               "title" => "Ruby",
-              "link" => "https://www.ruby-lang.org/"
+              "link" => "https://example.com/ruby"
             }
           }.to_json
         ]
@@ -192,7 +192,7 @@ class ClientTest < Minitest::Test
     end
 
     client_with(stubs, token: "secret-token").create_raindrop(
-      "https://www.ruby-lang.org/",
+      "https://example.com/ruby",
       title: "Ruby",
       excerpt: "Ruby language",
       note: "Read later",
@@ -227,7 +227,7 @@ class ClientTest < Minitest::Test
             "item" => {
               "_id" => 1668242775,
               "title" => "Ruby",
-              "link" => "https://www.ruby-lang.org/"
+              "link" => "https://example.com/ruby"
             }
           }.to_json
         ]
