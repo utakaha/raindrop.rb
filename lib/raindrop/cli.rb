@@ -15,6 +15,7 @@ module Raindrop
   class CLI
     SUCCESS = 0
     FAILURE = 1
+    INTERRUPTED = 130
     DEFAULT_SEARCH_LIMIT = 50
     MAX_SEARCH_LIMIT = 50
     SEARCH_TABLE_COLUMNS = [
@@ -87,6 +88,9 @@ module Raindrop
     rescue Error => e
       @stderr.puts e.message
       FAILURE
+    rescue Interrupt
+      @stderr.puts
+      INTERRUPTED
     end
 
     private

@@ -72,6 +72,20 @@ class RaindropTest < Minitest::Test
     assert_includes stderr, "Test token authentication is not supported."
   end
 
+  def test_run_handles_interrupt_without_backtrace
+    config = FakeConfig.new(token: "stored-token")
+    stdout = StringIO.new
+    stderr = StringIO.new
+    cli = Raindrop::CLI.new(["search", "ruby", "--all"], stdout: stdout, stderr: stderr, config: config)
+    cli.define_singleton_method(:authenticated_client) { raise Interrupt }
+
+    code = cli.run
+
+    assert_equal 130, code
+    assert_empty stdout.string
+    assert_equal "\n", stderr.string
+  end
+
   def test_auth_status_uses_config
     code, stdout, stderr, = run_cli(
       ["auth", "status"],
