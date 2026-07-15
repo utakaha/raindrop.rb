@@ -101,6 +101,14 @@ raindrop auth logout
 
 ## Commands
 
+### JSON output
+
+Use `--json` to output API results as JSON. This option is available for `search`, `get`, `add`, `update`, `delete`, `tags rename`, and `tags merge`.
+
+```sh
+raindrop search example --json
+```
+
 ### Search
 
 Search saved raindrops:
@@ -149,24 +157,12 @@ raindrop search example --collection 12345678
 
 When `--collection` is provided, the search query itself is optional.
 
-Output JSON:
-
-```sh
-raindrop search example --json
-```
-
 ### Get
 
 Show a single saved raindrop:
 
 ```sh
 raindrop get 1234567890
-```
-
-Output JSON:
-
-```sh
-raindrop get 1234567890 --json
 ```
 
 ### Add
@@ -189,12 +185,6 @@ raindrop add https://example.com/article \
   --collection 12345678
 ```
 
-Output JSON:
-
-```sh
-raindrop add https://example.com/article --json
-```
-
 ### Update
 
 Update a saved raindrop by ID:
@@ -211,24 +201,12 @@ raindrop update 1234567890 \
 
 At least one update option is required. Tags replace the raindrop's tag list with the tags passed on the command line.
 
-Output JSON:
-
-```sh
-raindrop update 1234567890 --title "Example Article" --json
-```
-
 ### Delete
 
 Delete a saved raindrop by ID:
 
 ```sh
 raindrop delete 1234567890
-```
-
-Output JSON:
-
-```sh
-raindrop delete 1234567890 --json
 ```
 
 ### Tags
@@ -253,12 +231,6 @@ raindrop tags rename old-tag new-tag --collection 12345678
 
 When `--collection` is omitted, the tag is renamed across all collections. The old and new tag names must be different.
 
-Output the API response as JSON:
-
-```sh
-raindrop tags rename old-tag new-tag --json
-```
-
 Merge two or more tags into one tag:
 
 ```sh
@@ -272,12 +244,6 @@ raindrop tags merge old-tag legacy-tag --into new-tag --collection 12345678
 ```
 
 When `--collection` is omitted, the tags are merged across all collections. Duplicate source tags and the destination tag are removed from the source list, and at least two source tags must remain.
-
-Output the API response as JSON:
-
-```sh
-raindrop tags merge old-tag legacy-tag --into new-tag --json
-```
 
 Show the available tag management commands:
 
