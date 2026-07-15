@@ -291,7 +291,7 @@ class ClientTest < Minitest::Test
 
     payload = client_with(stubs, token: 'secret-token').delete_raindrop(1_234_567_890)
 
-    assert_equal true, payload.fetch('result')
+    assert payload.fetch('result')
     stubs.verify_stubbed_calls
   end
 
@@ -346,7 +346,7 @@ class ClientTest < Minitest::Test
 
     payload = client_with(stubs, token: 'secret-token').rename_tag('old-tag', replacement: 'example')
 
-    assert_equal true, payload.fetch('result')
+    assert payload.fetch('result')
     stubs.verify_stubbed_calls
   end
 
@@ -378,7 +378,7 @@ class ClientTest < Minitest::Test
       collection_id: 12_345_678
     )
 
-    assert_equal true, payload.fetch('result')
+    assert payload.fetch('result')
     stubs.verify_stubbed_calls
   end
 

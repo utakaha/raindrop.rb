@@ -31,7 +31,7 @@ class ConfigTest < Minitest::Test
 
         assert_equal 'oauth', config.auth_type
         assert_equal 'access-token', config.access_token
-        assert config.refresh_token?
+        assert_predicate config, :refresh_token?
         assert_equal 'Bearer', config.token_type
         assert_equal 3600, config.expires_in
       end
@@ -61,7 +61,7 @@ class ConfigTest < Minitest::Test
         config.save_oauth_token('access_token' => 'access-token')
 
         assert config.delete_access_token
-        refute File.exist?(path)
+        refute_path_exists path
         assert_empty config.access_token
       end
     end
@@ -78,7 +78,7 @@ class ConfigTest < Minitest::Test
         )
 
         assert config.delete_access_token
-        refute File.exist?(path)
+        refute_path_exists path
         assert_empty config.access_token
       end
     end
@@ -109,6 +109,7 @@ class ConfigTest < Minitest::Test
         assert config.delete_access_token
 
         data = YAML.safe_load_file(path, permitted_classes: [], aliases: false)
+
         assert_equal({ 'collection_id' => 0 }, data.fetch('defaults'))
         refute data.key?('auth')
       end
