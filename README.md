@@ -237,6 +237,32 @@ List tags:
 raindrop tags
 ```
 
+Rename a tag in all collections:
+
+```sh
+raindrop tags rename ruby-lang ruby
+```
+
+Restrict the rename to one collection:
+
+```sh
+raindrop tags rename ruby-lang ruby --collection 55596991
+```
+
+When `--collection` is omitted, the tag is renamed across all collections. The old and new tag names must be different.
+
+Output the API response as JSON:
+
+```sh
+raindrop tags rename ruby-lang ruby --json
+```
+
+Show the available tag management commands:
+
+```sh
+raindrop tags --help
+```
+
 ### Collections
 
 List collections:

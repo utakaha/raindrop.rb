@@ -71,7 +71,7 @@ module Raindrop
       when "delete"
         delete(@argv)
       when "tags"
-        tags(@argv)
+        run_tags(@argv)
       when "collections"
         collections(@argv)
       when "-h", "--help", nil
@@ -132,6 +132,25 @@ module Raindrop
       else
         @stderr.puts "Unknown config command: #{subcommand}"
         print_config_usage(@stderr)
+        FAILURE
+      end
+    end
+
+    def run_tags(argv)
+      subcommand = argv.shift
+
+      case subcommand
+      when nil
+        tags(argv)
+      when "rename"
+        tags_rename(argv)
+      when "-h", "--help"
+        reject_arguments!(argv)
+        print_tags_usage
+        SUCCESS
+      else
+        @stderr.puts "Unknown tags command: #{subcommand}"
+        print_tags_usage(@stderr)
         FAILURE
       end
     end
@@ -345,6 +364,28 @@ module Raindrop
       SUCCESS
     end
 
+    def tags_rename(argv)
+      options = parse_tags_rename_options(argv)
+      old_name = parse_tag_name(argv.shift, "OLD")
+      new_name = parse_tag_name(argv.shift, "NEW")
+      reject_arguments!(argv)
+      raise OptionParser::InvalidArgument, "Tag names must be different." if old_name == new_name
+
+      payload = authenticated_client.rename_tag(
+        old_name,
+        replacement: new_name,
+        collection_id: options.fetch(:collection_id) || 0
+      )
+
+      if options.fetch(:json)
+        print_json_item(payload)
+      else
+        @stdout.puts "Renamed tag: #{old_name} -> #{new_name}"
+      end
+
+      SUCCESS
+    end
+
     def collections(argv)
       reject_arguments!(argv)
 
@@ -481,6 +522,22 @@ module Raindrop
       options
     end
 
+    def parse_tags_rename_options(argv)
+      options = { json: false, collection_id: nil }
+      parser = OptionParser.new do |opts|
+        opts.on("--json") do
+          options[:json] = true
+        end
+
+        opts.on("--collection ID", Integer) do |collection_id|
+          options[:collection_id] = collection_id
+        end
+      end
+      parser.parse!(argv)
+      validate_tag_collection_id!(options.fetch(:collection_id))
+      options
+    end
+
     def parse_raindrop_id(value)
       raise OptionParser::MissingArgument, "ID" if value.to_s.strip.empty?
 
@@ -499,6 +556,21 @@ module Raindrop
       raise OptionParser::InvalidArgument, value
     rescue URI::InvalidURIError
       raise OptionParser::InvalidArgument, value
+    end
+
+    def parse_tag_name(value, argument_name)
+      raise OptionParser::MissingArgument, argument_name if value.nil?
+
+      tag = value.strip
+      raise OptionParser::InvalidArgument, argument_name if tag.empty?
+
+      tag
+    end
+
+    def validate_tag_collection_id!(collection_id)
+      return if collection_id.nil? || collection_id.positive?
+
+      raise OptionParser::InvalidArgument, "collection"
     end
 
     def validate_add_options!(options)
@@ -962,7 +1034,7 @@ module Raindrop
           get     Show a saved raindrop
           search  Search saved raindrops
           update  Update a saved raindrop
-          tags    List tags
+          tags    List and manage tags
           collections
                   List collections
       USAGE
@@ -985,6 +1057,16 @@ module Raindrop
 
         Commands:
           path    Show config file path
+      USAGE
+    end
+
+    def print_tags_usage(io = @stdout)
+      io.puts <<~USAGE
+        Usage: raindrop tags [command]
+
+        Commands:
+          rename OLD NEW [--collection ID] [--json]
+                  Rename a tag
       USAGE
     end
   end

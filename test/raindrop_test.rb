@@ -47,6 +47,31 @@ class FakeConfig
   end
 end
 
+class FakeTagClient
+  attr_reader :rename_calls
+
+  def initialize
+    @rename_calls = []
+  end
+
+  def tags
+    {
+      "items" => [
+        { "_id" => "ruby", "count" => 12 }
+      ]
+    }
+  end
+
+  def rename_tag(tag, replacement:, collection_id: 0)
+    @rename_calls << {
+      tag: tag,
+      replacement: replacement,
+      collection_id: collection_id
+    }
+    { "result" => true }
+  end
+end
+
 class RaindropTest < Minitest::Test
   def run_cli(argv, stdin: "", config: FakeConfig.new)
     stdout = StringIO.new
@@ -62,6 +87,17 @@ class RaindropTest < Minitest::Test
     ).run
 
     [code, stdout.string, stderr.string, config]
+  end
+
+  def run_cli_with_client(argv, client)
+    stdout = StringIO.new
+    stderr = StringIO.new
+    cli = Raindrop::CLI.new(argv, stdout: stdout, stderr: stderr)
+    cli.define_singleton_method(:authenticated_client) { client }
+
+    code = cli.run
+
+    [code, stdout.string, stderr.string]
   end
 
   def test_auth_token_is_not_supported
@@ -894,12 +930,110 @@ class RaindropTest < Minitest::Test
     assert_includes stderr, "Not authenticated. Run `raindrop auth login`."
   end
 
-  def test_tags_rejects_arguments
+  def test_tags_without_subcommand_still_lists_tags
+    code, stdout, stderr = run_cli_with_client(["tags"], FakeTagClient.new)
+
+    assert_equal 0, code
+    assert_includes stdout, "ruby"
+    assert_empty stderr
+  end
+
+  def test_tags_rename_calls_client_with_collection
+    client = FakeTagClient.new
+
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", "ruby-lang", "ruby", "--collection", "55596991"],
+      client
+    )
+
+    assert_equal 0, code
+    assert_equal(
+      [
+        {
+          tag: "ruby-lang",
+          replacement: "ruby",
+          collection_id: 55_596_991
+        }
+      ],
+      client.rename_calls
+    )
+    assert_equal "Renamed tag: ruby-lang -> ruby\n", stdout
+    assert_empty stderr
+  end
+
+  def test_tags_rename_prints_json_result
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", "ruby-lang", "ruby", "--json"],
+      FakeTagClient.new
+    )
+
+    assert_equal 0, code
+    assert_equal({ "result" => true }, JSON.parse(stdout))
+    assert_empty stderr
+  end
+
+  def test_tags_rename_requires_old_and_new_names
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", "ruby-lang"],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "missing argument: NEW"
+  end
+
+  def test_tags_rename_rejects_empty_name
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", " ", "ruby"],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: OLD"
+  end
+
+  def test_tags_rename_rejects_same_name
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", "ruby", "ruby"],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "Tag names must be different."
+  end
+
+  def test_tags_rename_rejects_non_positive_collection
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "rename", "ruby-lang", "ruby", "--collection", "0"],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, "invalid argument: collection"
+  end
+
+  def test_tags_help_lists_rename_subcommand
+    code, stdout, stderr = run_cli_with_client(
+      ["tags", "--help"],
+      FakeTagClient.new
+    )
+
+    assert_equal 0, code
+    assert_includes stdout, "rename"
+    assert_empty stderr
+  end
+
+  def test_tags_rejects_unknown_subcommand
     code, stdout, stderr, = run_cli(["tags", "extra"], config: FakeConfig.new(token: "stored-token"))
 
     assert_equal 1, code
     assert_empty stdout
-    assert_includes stderr, "invalid argument: extra"
+    assert_includes stderr, "Unknown tags command: extra"
+    assert_includes stderr, "Usage: raindrop tags [command]"
   end
 
   def test_tags_prints_human_readable_items

@@ -69,6 +69,19 @@ module Raindrop
       raise ApiError, "API request failed: #{e.message}"
     end
 
+    def rename_tag(tag, replacement:, collection_id: 0)
+      response = @connection.put("tags/#{collection_id}") do |request|
+        request.headers["Content-Type"] = "application/json"
+        request.body = JSON.generate(
+          "tags" => [tag],
+          "replace" => replacement
+        )
+      end
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     def root_collections
       response = @connection.get("collections")
       handle_response(response)
