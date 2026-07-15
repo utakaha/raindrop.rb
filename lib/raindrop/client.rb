@@ -38,7 +38,16 @@ module Raindrop
     def create_raindrop(link, title: nil, excerpt: nil, note: nil, tags: [], collection_id: nil)
       response = @connection.post('raindrop') do |request|
         request.headers['Content-Type'] = 'application/json'
-        request.body = JSON.generate(create_raindrop_body(link, title, excerpt, note, tags, collection_id))
+        request.body = JSON.generate(
+          create_raindrop_body(
+            link: link,
+            title: title,
+            excerpt: excerpt,
+            note: note,
+            tags: tags,
+            collection_id: collection_id
+          )
+        )
       end
       handle_response(response)
     rescue Faraday::ConnectionFailed => e
@@ -113,7 +122,7 @@ module Raindrop
       end
     end
 
-    def create_raindrop_body(link, title, excerpt, note, tags, collection_id)
+    def create_raindrop_body(link:, title:, excerpt:, note:, tags:, collection_id:)
       body = {
         'link' => link,
         'pleaseParse' => {}

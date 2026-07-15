@@ -82,10 +82,7 @@ module Raindrop
         print_usage(@stderr)
         FAILURE
       end
-    rescue OptionParser::ParseError => e
-      @stderr.puts e.message
-      FAILURE
-    rescue Error => e
+    rescue OptionParser::ParseError, Error => e
       @stderr.puts e.message
       FAILURE
     rescue Interrupt
@@ -762,39 +759,46 @@ module Raindrop
     end
 
     def search_all(client, query, collection_id:, sort:, json:)
+      return print_all_search_items_as_json(client, query, collection_id: collection_id, sort: sort) if json
+
+      print_all_search_items(client, query, collection_id: collection_id, sort: sort)
+    end
+
+    def print_all_search_items_as_json(client, query, collection_id:, sort:)
+      collected_items = []
+      each_search_page(client, query, collection_id: collection_id, sort: sort) do |items, _total, _fetched|
+        collected_items.concat(items)
+      end
+      print_json_items(collected_items)
+    end
+
+    def print_all_search_items(client, query, collection_id:, sort:)
+      printed = false
+      each_search_page(client, query, collection_id: collection_id, sort: sort) do |items, total, fetched|
+        print_search_items(items, total: total, summary_count: total || fetched, header: !printed)
+        printed = true
+      end
+      print_search_items([], total: nil) unless printed
+    end
+
+    def each_search_page(client, query, collection_id:, sort:)
       page = 0
       fetched = 0
-      collected_items = []
       total = nil
-      printed = false
 
       loop do
         payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page, sort: sort)
         items = payload.fetch('items', [])
         break if items.empty?
 
-        if json
-          collected_items.concat(items)
-        else
-          count = payload['count'].to_i
-          total = count if count.positive?
-          print_search_items(items, total: total, summary_count: total || (fetched + items.size), header: !printed)
-          printed = true
-        end
-
         fetched += items.size
         count = payload['count'].to_i
         total = count if count.positive?
-        break if count.positive? && fetched >= count
+        yield items, total, fetched
+        break if total && fetched >= total
 
         page += 1
         sleep 1
-      end
-
-      if json
-        print_json_items(collected_items)
-      elsif !printed
-        print_search_items(collected_items, total: total)
       end
     end
 

@@ -67,7 +67,11 @@ module Raindrop
       payload = parse_payload(response)
       return payload if response.success?
 
-      message = payload['error'] || payload['errorMessage'] || payload['message'] || response.reason_phrase || 'HTTP error'
+      message = payload['error'] ||
+                payload['errorMessage'] ||
+                payload['message'] ||
+                response.reason_phrase ||
+                'HTTP error'
       raise ApiError, "OAuth request failed: #{response.status} #{message}"
     end
 
