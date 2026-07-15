@@ -1,0 +1,29 @@
+Style/Documentation:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 25
+  Exclude:
+    - "test/**/*"
+
+Metrics/AbcSize:
+  Max: 25
+  Exclude:
+    - "test/**/*"
+
+Metrics/ClassLength:
+  Max: 200
+  Exclude:
+    - "test/**/*"
+
+Metrics/BlockLength:
+  Exclude:
+    - "test/**/*"
+
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+  Exclude:
+    - "test/**/*"

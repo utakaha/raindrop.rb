@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "fileutils"
-require "yaml"
+require 'fileutils'
+require 'yaml'
 
-require_relative "errors"
+require_relative 'errors'
 
 module Raindrop
   class Config
@@ -17,45 +17,45 @@ module Raindrop
     end
 
     def self.default_path
-      config_home = ENV.fetch("XDG_CONFIG_HOME") do
-        File.join(Dir.home, ".config")
+      config_home = ENV.fetch('XDG_CONFIG_HOME') do
+        File.join(Dir.home, '.config')
       end
 
-      File.join(config_home, "raindrop-cli", "config.yml")
+      File.join(config_home, 'raindrop-cli', 'config.yml')
     end
 
     def access_token
-      data.dig("auth", "access_token").to_s.strip
+      data.dig('auth', 'access_token').to_s.strip
     end
 
     def auth_type
-      data.dig("auth", "type").to_s.strip
+      data.dig('auth', 'type').to_s.strip
     end
 
     def refresh_token?
-      !data.dig("auth", "refresh_token").to_s.strip.empty?
+      !data.dig('auth', 'refresh_token').to_s.strip.empty?
     end
 
     def token_type
-      data.dig("auth", "token_type").to_s.strip
+      data.dig('auth', 'token_type').to_s.strip
     end
 
     def expires_in
-      data.dig("auth", "expires_in")
+      data.dig('auth', 'expires_in')
     end
 
     def save_oauth_token(payload)
-      access_token = payload["access_token"].to_s.strip
-      raise ConfigError, "OAuth response did not include an access token." if access_token.empty?
+      access_token = payload['access_token'].to_s.strip
+      raise ConfigError, 'OAuth response did not include an access token.' if access_token.empty?
 
       update do |data|
-        data["auth"] = {
-          "type" => "oauth",
-          "access_token" => access_token
+        data['auth'] = {
+          'type' => 'oauth',
+          'access_token' => access_token
         }
-        data["auth"]["refresh_token"] = payload["refresh_token"].to_s unless payload["refresh_token"].to_s.empty?
-        data["auth"]["token_type"] = payload["token_type"].to_s unless payload["token_type"].to_s.empty?
-        data["auth"]["expires_in"] = payload["expires_in"] if payload.key?("expires_in")
+        data['auth']['refresh_token'] = payload['refresh_token'].to_s unless payload['refresh_token'].to_s.empty?
+        data['auth']['token_type'] = payload['token_type'].to_s unless payload['token_type'].to_s.empty?
+        data['auth']['expires_in'] = payload['expires_in'] if payload.key?('expires_in')
       end
 
       true
@@ -65,10 +65,10 @@ module Raindrop
       return false unless File.file?(@path)
 
       data = read_data
-      token = data.dig("auth", "access_token").to_s.strip
+      token = data.dig('auth', 'access_token').to_s.strip
       return false if token.empty?
 
-      data.delete("auth")
+      data.delete('auth')
       write_data(data)
 
       true
@@ -101,7 +101,7 @@ module Raindrop
       end
 
       ensure_parent_directory!
-      File.write(@path, YAML.dump(data), mode: "w", perm: CONFIG_FILE_MODE)
+      File.write(@path, YAML.dump(data), mode: 'w', perm: CONFIG_FILE_MODE)
       File.chmod(CONFIG_FILE_MODE, @path)
     end
 

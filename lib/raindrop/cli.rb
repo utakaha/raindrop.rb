@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require "io/console"
-require "json"
-require "optparse"
-require "time"
-require "uri"
+require 'io/console'
+require 'json'
+require 'optparse'
+require 'time'
+require 'uri'
 
-require_relative "client"
-require_relative "config"
-require_relative "errors"
-require_relative "oauth"
+require_relative 'client'
+require_relative 'config'
+require_relative 'errors'
+require_relative 'oauth'
 
 module Raindrop
   class CLI
@@ -19,19 +19,19 @@ module Raindrop
     DEFAULT_SEARCH_LIMIT = 50
     MAX_SEARCH_LIMIT = 50
     SEARCH_TABLE_COLUMNS = [
-      { key: :id, label: "ID", max_width: 10 },
-      { key: :title, label: "TITLE", max_width: 60 },
-      { key: :url, label: "URL", max_width: 60 },
-      { key: :saved_at, label: "SAVED AT", max_width: 20 }
+      { key: :id, label: 'ID', max_width: 10 },
+      { key: :title, label: 'TITLE', max_width: 60 },
+      { key: :url, label: 'URL', max_width: 60 },
+      { key: :saved_at, label: 'SAVED AT', max_width: 20 }
     ].freeze
     TAG_TABLE_COLUMNS = [
-      { key: :name, label: "TAG", max_width: 40 },
-      { key: :count, label: "COUNT", max_width: 10 }
+      { key: :name, label: 'TAG', max_width: 40 },
+      { key: :count, label: 'COUNT', max_width: 10 }
     ].freeze
     COLLECTION_TABLE_COLUMNS = [
-      { key: :id, label: "ID", max_width: 10 },
-      { key: :title, label: "TITLE", max_width: 60 },
-      { key: :count, label: "COUNT", max_width: 10 }
+      { key: :id, label: 'ID', max_width: 10 },
+      { key: :title, label: 'TITLE', max_width: 60 },
+      { key: :count, label: 'COUNT', max_width: 10 }
     ].freeze
     SEARCH_SORTS = %w[
       -created
@@ -56,25 +56,25 @@ module Raindrop
       command = @argv.shift
 
       case command
-      when "auth"
+      when 'auth'
         run_auth(@argv)
-      when "config"
+      when 'config'
         run_config(@argv)
-      when "add"
+      when 'add'
         add(@argv)
-      when "search"
+      when 'search'
         search(@argv)
-      when "get"
+      when 'get'
         get(@argv)
-      when "update"
+      when 'update'
         update(@argv)
-      when "delete"
+      when 'delete'
         delete(@argv)
-      when "tags"
+      when 'tags'
         run_tags(@argv)
-      when "collections"
+      when 'collections'
         collections(@argv)
-      when "-h", "--help", nil
+      when '-h', '--help', nil
         print_usage
         SUCCESS
       else
@@ -99,16 +99,16 @@ module Raindrop
       subcommand = argv.shift
 
       case subcommand
-      when "login"
+      when 'login'
         auth_login(argv)
-      when "token"
+      when 'token'
         reject_arguments!(argv)
-        raise AuthenticationError, "Test token authentication is not supported. Run `raindrop auth login`."
-      when "status"
+        raise AuthenticationError, 'Test token authentication is not supported. Run `raindrop auth login`.'
+      when 'status'
         auth_status(argv)
-      when "logout"
+      when 'logout'
         auth_logout(argv)
-      when "-h", "--help", nil
+      when '-h', '--help', nil
         print_auth_usage
         SUCCESS
       else
@@ -122,11 +122,11 @@ module Raindrop
       subcommand = argv.shift
 
       case subcommand
-      when "path"
+      when 'path'
         config_path(argv)
       when nil
         config_show(argv)
-      when "-h", "--help"
+      when '-h', '--help'
         print_config_usage
         SUCCESS
       else
@@ -142,9 +142,9 @@ module Raindrop
       case subcommand
       when nil
         tags(argv)
-      when "rename"
+      when 'rename'
         tags_rename(argv)
-      when "-h", "--help"
+      when '-h', '--help'
         reject_arguments!(argv)
         print_tags_usage
         SUCCESS
@@ -163,10 +163,10 @@ module Raindrop
       code = options.fetch(:code)
       redirect_uri = options.fetch(:redirect_uri) || OAuth::DEFAULT_REDIRECT_URI
       if code.to_s.strip.empty?
-        @stdout.puts "Redirect URI:"
+        @stdout.puts 'Redirect URI:'
         @stdout.puts redirect_uri
         @stdout.puts
-        @stdout.puts "Open this URL:"
+        @stdout.puts 'Open this URL:'
         @stdout.puts oauth.authorization_url(
           client_id: options.fetch(:client_id),
           redirect_uri: redirect_uri
@@ -174,7 +174,7 @@ module Raindrop
         @stdout.puts "Waiting for OAuth callback on #{redirect_uri}"
         code = oauth.receive_authorization_code(redirect_uri: redirect_uri)
       end
-      raise AuthenticationError, "Authorization code is empty." if code.to_s.strip.empty?
+      raise AuthenticationError, 'Authorization code is empty.' if code.to_s.strip.empty?
 
       payload = oauth.exchange_code(
         client_id: options.fetch(:client_id),
@@ -193,10 +193,10 @@ module Raindrop
       token = @config.access_token
 
       if token.empty?
-        @stdout.puts "Not authenticated. Run `raindrop auth login`."
+        @stdout.puts 'Not authenticated. Run `raindrop auth login`.'
         FAILURE
-      elsif @config.auth_type != "oauth"
-        @stdout.puts "Test token authentication is not supported. Run `raindrop auth login`."
+      elsif @config.auth_type != 'oauth'
+        @stdout.puts 'Test token authentication is not supported. Run `raindrop auth login`.'
         FAILURE
       else
         @stdout.puts "Authenticated by #{@config.path}"
@@ -230,17 +230,17 @@ module Raindrop
       token = @config.access_token
 
       if type.empty? || token.empty?
-        @stdout.puts "Auth: not configured"
-      elsif type != "oauth"
-        @stdout.puts "Auth: unsupported"
+        @stdout.puts 'Auth: not configured'
+      elsif type != 'oauth'
+        @stdout.puts 'Auth: unsupported'
         @stdout.puts "Type: #{type}"
-        @stdout.puts "Run `raindrop auth login`."
+        @stdout.puts 'Run `raindrop auth login`.'
       else
         @stdout.puts "Auth: #{type}"
-        @stdout.puts "Access token: [REDACTED]"
-        @stdout.puts "Refresh token: #{@config.refresh_token? ? "[REDACTED]" : "not stored"}"
-        @stdout.puts "Token type: #{@config.token_type.empty? ? "unknown" : @config.token_type}"
-        @stdout.puts "Expires in: #{@config.expires_in || "unknown"}"
+        @stdout.puts 'Access token: [REDACTED]'
+        @stdout.puts "Refresh token: #{@config.refresh_token? ? '[REDACTED]' : 'not stored'}"
+        @stdout.puts "Token type: #{@config.token_type.empty? ? 'unknown' : @config.token_type}"
+        @stdout.puts "Expires in: #{@config.expires_in || 'unknown'}"
       end
 
       SUCCESS
@@ -259,7 +259,7 @@ module Raindrop
         tags: options.fetch(:tags),
         collection_id: options.fetch(:collection_id)
       )
-      item = payload.fetch("item", {})
+      item = payload.fetch('item', {})
 
       if options.fetch(:json)
         print_json_item(item)
@@ -273,7 +273,7 @@ module Raindrop
     def search(argv)
       options = parse_search_options(argv)
       query = build_search_query(argv, options)
-      raise SearchError, "Search query is required." if query.empty? && search_query_required?(options)
+      raise SearchError, 'Search query is required.' if query.empty? && search_query_required?(options)
 
       if options.fetch(:all)
         search_all(
@@ -290,7 +290,7 @@ module Raindrop
           perpage: options.fetch(:limit),
           sort: options.fetch(:sort)
         )
-        print_search_items(payload.fetch("items", []), json: options.fetch(:json), total: payload["count"])
+        print_search_items(payload.fetch('items', []), json: options.fetch(:json), total: payload['count'])
       end
 
       SUCCESS
@@ -302,7 +302,7 @@ module Raindrop
       reject_arguments!(argv)
 
       payload = authenticated_client.get_raindrop(id)
-      item = payload.fetch("item", {})
+      item = payload.fetch('item', {})
 
       if options.fetch(:json)
         print_json_item(item)
@@ -326,7 +326,7 @@ module Raindrop
         tags: update_tags(options),
         collection_id: options.fetch(:collection_id)
       )
-      item = payload.fetch("item", {})
+      item = payload.fetch('item', {})
 
       if options.fetch(:json)
         print_json_item(item)
@@ -353,10 +353,10 @@ module Raindrop
       reject_arguments!(argv)
 
       payload = authenticated_client.tags
-      items = payload.fetch("items", [])
+      items = payload.fetch('items', [])
 
       if items.empty?
-        @stdout.puts "No tags found."
+        @stdout.puts 'No tags found.'
       else
         print_tags(items)
       end
@@ -366,10 +366,10 @@ module Raindrop
 
     def tags_rename(argv)
       options = parse_tags_rename_options(argv)
-      old_name = parse_tag_name(argv.shift, "OLD")
-      new_name = parse_tag_name(argv.shift, "NEW")
+      old_name = parse_tag_name(argv.shift, 'OLD')
+      new_name = parse_tag_name(argv.shift, 'NEW')
       reject_arguments!(argv)
-      raise OptionParser::InvalidArgument, "Tag names must be different." if old_name == new_name
+      raise OptionParser::InvalidArgument, 'Tag names must be different.' if old_name == new_name
 
       payload = authenticated_client.rename_tag(
         old_name,
@@ -389,12 +389,12 @@ module Raindrop
     def collections(argv)
       reject_arguments!(argv)
 
-      items = authenticated_client.root_collections.fetch("items", []) +
-              authenticated_client.child_collections.fetch("items", [])
+      items = authenticated_client.root_collections.fetch('items', []) +
+              authenticated_client.child_collections.fetch('items', [])
       items = unique_items_by_id(items)
 
       if items.empty?
-        @stdout.puts "No collections found."
+        @stdout.puts 'No collections found.'
       else
         print_collections(items)
       end
@@ -405,8 +405,11 @@ module Raindrop
     def authenticated_client
       @authenticated_client ||= begin
         token = @config.access_token
-        raise AuthenticationError, "Not authenticated. Run `raindrop auth login`." if token.empty?
-        raise AuthenticationError, "Test token authentication is not supported. Run `raindrop auth login`." unless @config.auth_type == "oauth"
+        raise AuthenticationError, 'Not authenticated. Run `raindrop auth login`.' if token.empty?
+        unless @config.auth_type == 'oauth'
+          raise AuthenticationError,
+                'Test token authentication is not supported. Run `raindrop auth login`.'
+        end
 
         Client.new(token: token)
       end
@@ -415,19 +418,19 @@ module Raindrop
     def parse_auth_login_options(argv)
       options = { client_id: nil, client_secret: nil, redirect_uri: nil, code: nil }
       parser = OptionParser.new do |opts|
-        opts.on("--client-id ID") do |client_id|
+        opts.on('--client-id ID') do |client_id|
           options[:client_id] = client_id
         end
 
-        opts.on("--client-secret SECRET") do |client_secret|
+        opts.on('--client-secret SECRET') do |client_secret|
           options[:client_secret] = client_secret
         end
 
-        opts.on("--redirect-uri URI") do |redirect_uri|
+        opts.on('--redirect-uri URI') do |redirect_uri|
           options[:redirect_uri] = redirect_uri
         end
 
-        opts.on("--code CODE") do |code|
+        opts.on('--code CODE') do |code|
           options[:code] = code
         end
       end
@@ -439,27 +442,27 @@ module Raindrop
     def parse_add_options(argv)
       options = { json: false, title: nil, description: nil, note: nil, tags: [], collection_id: nil }
       parser = OptionParser.new do |opts|
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
 
-        opts.on("--title TITLE") do |title|
+        opts.on('--title TITLE') do |title|
           options[:title] = title
         end
 
-        opts.on("--description DESCRIPTION") do |description|
+        opts.on('--description DESCRIPTION') do |description|
           options[:description] = description
         end
 
-        opts.on("--note NOTE") do |note|
+        opts.on('--note NOTE') do |note|
           options[:note] = note
         end
 
-        opts.on("--tag TAG") do |tag|
+        opts.on('--tag TAG') do |tag|
           options[:tags] << tag
         end
 
-        opts.on("--collection ID", Integer) do |collection_id|
+        opts.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
         end
       end
@@ -471,7 +474,7 @@ module Raindrop
     def parse_get_options(argv)
       options = { json: false }
       parser = OptionParser.new do |opts|
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
       end
@@ -482,27 +485,27 @@ module Raindrop
     def parse_update_options(argv)
       options = { json: false, title: nil, description: nil, note: nil, tags: [], collection_id: nil }
       parser = OptionParser.new do |opts|
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
 
-        opts.on("--title TITLE") do |title|
+        opts.on('--title TITLE') do |title|
           options[:title] = title
         end
 
-        opts.on("--description DESCRIPTION") do |description|
+        opts.on('--description DESCRIPTION') do |description|
           options[:description] = description
         end
 
-        opts.on("--note NOTE") do |note|
+        opts.on('--note NOTE') do |note|
           options[:note] = note
         end
 
-        opts.on("--tag TAG") do |tag|
+        opts.on('--tag TAG') do |tag|
           options[:tags] << tag
         end
 
-        opts.on("--collection ID", Integer) do |collection_id|
+        opts.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
         end
       end
@@ -514,7 +517,7 @@ module Raindrop
     def parse_delete_options(argv)
       options = { json: false }
       parser = OptionParser.new do |opts|
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
       end
@@ -525,11 +528,11 @@ module Raindrop
     def parse_tags_rename_options(argv)
       options = { json: false, collection_id: nil }
       parser = OptionParser.new do |opts|
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
 
-        opts.on("--collection ID", Integer) do |collection_id|
+        opts.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
         end
       end
@@ -539,7 +542,7 @@ module Raindrop
     end
 
     def parse_raindrop_id(value)
-      raise OptionParser::MissingArgument, "ID" if value.to_s.strip.empty?
+      raise OptionParser::MissingArgument, 'ID' if value.to_s.strip.empty?
 
       id = Integer(value, exception: false)
       raise OptionParser::InvalidArgument, value if id.nil? || id <= 0
@@ -548,7 +551,7 @@ module Raindrop
     end
 
     def parse_url(value)
-      raise OptionParser::MissingArgument, "URL" if value.to_s.strip.empty?
+      raise OptionParser::MissingArgument, 'URL' if value.to_s.strip.empty?
 
       uri = URI.parse(value)
       return value if uri.is_a?(URI::HTTP) && !uri.host.to_s.empty?
@@ -570,25 +573,25 @@ module Raindrop
     def validate_tag_collection_id!(collection_id)
       return if collection_id.nil? || collection_id.positive?
 
-      raise OptionParser::InvalidArgument, "collection"
+      raise OptionParser::InvalidArgument, 'collection'
     end
 
     def validate_add_options!(options)
-      validate_optional_text!("title", options.fetch(:title))
-      validate_optional_text!("description", options.fetch(:description))
-      validate_optional_text!("note", options.fetch(:note))
-      raise OptionParser::InvalidArgument, "tag" unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
+      validate_optional_text!('title', options.fetch(:title))
+      validate_optional_text!('description', options.fetch(:description))
+      validate_optional_text!('note', options.fetch(:note))
+      raise OptionParser::InvalidArgument, 'tag' unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
     end
 
     def validate_update_options!(options)
-      validate_optional_text!("title", options.fetch(:title))
-      validate_optional_text!("description", options.fetch(:description))
-      validate_optional_text!("note", options.fetch(:note))
-      raise OptionParser::InvalidArgument, "tag" unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
+      validate_optional_text!('title', options.fetch(:title))
+      validate_optional_text!('description', options.fetch(:description))
+      validate_optional_text!('note', options.fetch(:note))
+      raise OptionParser::InvalidArgument, 'tag' unless options.fetch(:tags).all? { |tag| !tag.to_s.strip.empty? }
 
       return if update_requested?(options)
 
-      raise OptionParser::MissingArgument, "update option"
+      raise OptionParser::MissingArgument, 'update option'
     end
 
     def update_requested?(options)
@@ -614,7 +617,7 @@ module Raindrop
 
     def validate_auth_login_options!(options)
       %i[client_id client_secret].each do |name|
-        validate_required_text!(name.to_s.tr("_", "-"), options.fetch(name))
+        validate_required_text!(name.to_s.tr('_', '-'), options.fetch(name))
       end
       parse_url(options.fetch(:redirect_uri)) unless options.fetch(:redirect_uri).nil?
     end
@@ -628,28 +631,28 @@ module Raindrop
       options = { limit: DEFAULT_SEARCH_LIMIT, all: false, collection_id: nil, json: false, tags: [], sort: nil }
       limit_option_used = false
       parser = OptionParser.new do |opts|
-        opts.on("--all") do
+        opts.on('--all') do
           options[:all] = true
         end
 
-        opts.on("--json") do
+        opts.on('--json') do
           options[:json] = true
         end
 
-        opts.on("--collection ID", Integer) do |collection_id|
+        opts.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
         end
 
-        opts.on("--limit LIMIT", Integer) do |limit|
+        opts.on('--limit LIMIT', Integer) do |limit|
           options[:limit] = limit
           limit_option_used = true
         end
 
-        opts.on("--tag TAG") do |tag|
+        opts.on('--tag TAG') do |tag|
           options[:tags] << tag
         end
 
-        opts.on("--sort SORT") do |sort|
+        opts.on('--sort SORT') do |sort|
           options[:sort] = sort
         end
       end
@@ -659,9 +662,9 @@ module Raindrop
     end
 
     def build_search_query(argv, options)
-      query = argv.join(" ").strip
-      tag_query = options.fetch(:tags).map { |tag| format_tag_query(tag) }.join(" ")
-      [query, tag_query].reject(&:empty?).join(" ")
+      query = argv.join(' ').strip
+      tag_query = options.fetch(:tags).map { |tag| format_tag_query(tag) }.join(' ')
+      [query, tag_query].reject(&:empty?).join(' ')
     end
 
     def validate_search_options!(options, limit_option_used, argv)
@@ -669,24 +672,22 @@ module Raindrop
       validate_tags!(options.fetch(:tags))
       validate_search_sort!(options.fetch(:sort), argv)
 
-      if options.fetch(:all) && limit_option_used
-        raise SearchError, "`--all` cannot be used with `--limit`."
-      end
+      return unless options.fetch(:all) && limit_option_used
+
+      raise SearchError, '`--all` cannot be used with `--limit`.'
     end
 
     def validate_search_sort!(sort, argv)
       return if sort.nil?
 
-      unless SEARCH_SORTS.include?(sort)
-        raise SearchError, "Search sort must be one of: #{SEARCH_SORTS.join(", ")}."
-      end
+      raise SearchError, "Search sort must be one of: #{SEARCH_SORTS.join(', ')}." unless SEARCH_SORTS.include?(sort)
 
-      return unless sort == "score"
+      return unless sort == 'score'
 
-      query = argv.join(" ").strip
+      query = argv.join(' ').strip
       return unless query.empty?
 
-      raise SearchError, "`--sort score` requires a search query."
+      raise SearchError, '`--sort score` requires a search query.'
     end
 
     def search_query_required?(options)
@@ -706,12 +707,12 @@ module Raindrop
     def validate_tags!(tags)
       return if tags.all? { |tag| !tag.to_s.strip.empty? }
 
-      raise SearchError, "Search tag must not be empty."
+      raise SearchError, 'Search tag must not be empty.'
     end
 
     def format_tag_query(tag)
       tag = tag.strip
-      return %(#"#{tag}") if tag.include?(" ")
+      return %(#"#{tag}") if tag.include?(' ')
 
       "##{tag}"
     end
@@ -725,20 +726,20 @@ module Raindrop
 
       loop do
         payload = client.search_raindrops(query, collection_id: collection_id, perpage: 50, page: page, sort: sort)
-        items = payload.fetch("items", [])
+        items = payload.fetch('items', [])
         break if items.empty?
 
         if json
           collected_items.concat(items)
         else
-          count = payload["count"].to_i
+          count = payload['count'].to_i
           total = count if count.positive?
           print_search_items(items, total: total, summary_count: total || fetched + items.size, header: !printed)
           printed = true
         end
 
         fetched += items.size
-        count = payload["count"].to_i
+        count = payload['count'].to_i
         total = count if count.positive?
         break if count.positive? && fetched >= count
 
@@ -757,10 +758,10 @@ module Raindrop
       return print_json_items(items) if json
 
       if items.empty?
-        @stdout.puts "No raindrops found."
+        @stdout.puts 'No raindrops found.'
       else
         rows = items.map { |item| search_table_row(item) }
-        print_table_summary("raindrops", summary_count || rows.size, total) if header
+        print_table_summary('raindrops', summary_count || rows.size, total) if header
         print_table(rows, SEARCH_TABLE_COLUMNS, header: header, fixed_width: true)
       end
     end
@@ -768,23 +769,23 @@ module Raindrop
     def print_tags(items)
       rows = items.map do |item|
         {
-          name: item["_id"].to_s,
-          count: item["count"].to_s
+          name: item['_id'].to_s,
+          count: item['count'].to_s
         }
       end
-      print_table_summary("tags", rows.size)
+      print_table_summary('tags', rows.size)
       print_table(rows, TAG_TABLE_COLUMNS)
     end
 
     def print_collections(items)
       rows = items.map do |item|
         {
-          id: item["_id"].to_s,
-          title: item["title"].to_s,
-          count: item["count"].to_s
+          id: item['_id'].to_s,
+          title: item['title'].to_s,
+          count: item['count'].to_s
         }
       end
-      print_table_summary("collections", rows.size)
+      print_table_summary('collections', rows.size)
       print_table(rows, COLLECTION_TABLE_COLUMNS)
     end
 
@@ -806,40 +807,40 @@ module Raindrop
 
     def print_update_result(id, options)
       @stdout.puts "Updated raindrop: #{id}"
-      @stdout.puts "Changed: #{update_change_labels(options).join(", ")}"
+      @stdout.puts "Changed: #{update_change_labels(options).join(', ')}"
       @stdout.puts
     end
 
     def update_change_labels(options)
       labels = []
-      labels << "title" unless options.fetch(:title).nil?
-      labels << "description" unless options.fetch(:description).nil?
-      labels << "note" unless options.fetch(:note).nil?
-      labels << "tags" unless options.fetch(:tags).empty?
-      labels << "collection" unless options.fetch(:collection_id).nil?
+      labels << 'title' unless options.fetch(:title).nil?
+      labels << 'description' unless options.fetch(:description).nil?
+      labels << 'note' unless options.fetch(:note).nil?
+      labels << 'tags' unless options.fetch(:tags).empty?
+      labels << 'collection' unless options.fetch(:collection_id).nil?
       labels
     end
 
     def print_raindrop_detail(item)
-      id = item["_id"].to_s
-      link = item["link"].to_s
-      title = item["title"].to_s.strip
+      id = item['_id'].to_s
+      link = item['link'].to_s
+      title = item['title'].to_s.strip
       title = link if title.empty?
-      tags = Array(item["tags"]).map(&:to_s)
-      created = item["created"].to_s
-      updated = item["lastUpdate"].to_s
-      excerpt = item["excerpt"].to_s.strip
-      note = item["note"].to_s.strip
+      tags = Array(item['tags']).map(&:to_s)
+      created = item['created'].to_s
+      updated = item['lastUpdate'].to_s
+      excerpt = item['excerpt'].to_s.strip
+      note = item['note'].to_s.strip
 
       @stdout.puts "ID: #{id}" unless id.empty?
       @stdout.puts "Title: #{title}" unless title.empty?
       @stdout.puts "URL: #{link}" unless link.empty?
-      @stdout.puts "Tags: #{tags.join(", ")}" unless tags.empty?
+      @stdout.puts "Tags: #{tags.join(', ')}" unless tags.empty?
       @stdout.puts "Saved: #{created}" unless created.empty?
       @stdout.puts "Updated: #{updated}" unless updated.empty?
 
-      print_detail_text("Description", excerpt)
-      print_detail_text("Note", note)
+      print_detail_text('Description', excerpt)
+      print_detail_text('Note', note)
     end
 
     def print_detail_text(label, text)
@@ -850,14 +851,14 @@ module Raindrop
     end
 
     def search_table_row(item)
-      link = item["link"].to_s
-      title = item["title"].to_s.strip
+      link = item['link'].to_s
+      title = item['title'].to_s.strip
       title = link if title.empty?
       {
-        id: item["_id"].to_s,
+        id: item['_id'].to_s,
         title: title,
         url: link,
-        saved_at: relative_time(item["created"])
+        saved_at: relative_time(item['created'])
       }
     end
 
@@ -880,7 +881,7 @@ module Raindrop
       rows.map do |row|
         columns.each_with_object({}) do |column, normalized_row|
           key = column.fetch(:key)
-          normalized_row[key] = truncate_table_value(row.fetch(key, ""), column.fetch(:max_width))
+          normalized_row[key] = truncate_table_value(row.fetch(key, ''), column.fetch(:max_width))
         end
       end
     end
@@ -898,12 +899,12 @@ module Raindrop
     def print_table_line(values, widths)
       line = values.each_with_index.map do |value, index|
         index == values.size - 1 ? value : ljust_display(value, widths.fetch(index))
-      end.join("  ")
+      end.join('  ')
       @stdout.puts line.rstrip
     end
 
     def truncate_table_value(value, max_width)
-      value = value.to_s.gsub(/\s+/, " ").strip
+      value = value.to_s.gsub(/\s+/, ' ').strip
       return value if display_width(value) <= max_width
       return truncate_display(value, max_width) if max_width <= 3
 
@@ -912,7 +913,7 @@ module Raindrop
 
     def truncate_display(value, max_width)
       width = 0
-      value.grapheme_clusters.each_with_object(+"") do |cluster, truncated|
+      value.grapheme_clusters.each_with_object(+'') do |cluster, truncated|
         cluster_width = display_cluster_width(cluster)
         break truncated if width + cluster_width > max_width
 
@@ -923,7 +924,7 @@ module Raindrop
 
     def ljust_display(value, width)
       value = value.to_s
-      value + (" " * [width - display_width(value), 0].max)
+      value + (' ' * [width - display_width(value), 0].max)
     end
 
     def display_width(value)
@@ -977,32 +978,32 @@ module Raindrop
     def relative_time(value, now: Time.now)
       time = Time.parse(value.to_s)
       seconds = (now - time).to_i
-      suffix = seconds.negative? ? "from now" : "ago"
+      suffix = seconds.negative? ? 'from now' : 'ago'
       seconds = seconds.abs
 
       amount, unit = relative_time_amount(seconds)
       "about #{amount} #{unit} #{suffix}"
     rescue ArgumentError
-      ""
+      ''
     end
 
     def relative_time_amount(seconds)
-      return [seconds, pluralize_time_unit(seconds, "second")] if seconds < 60
+      return [seconds, pluralize_time_unit(seconds, 'second')] if seconds < 60
 
       minutes = seconds / 60
-      return [minutes, pluralize_time_unit(minutes, "minute")] if minutes < 60
+      return [minutes, pluralize_time_unit(minutes, 'minute')] if minutes < 60
 
       hours = minutes / 60
-      return [hours, pluralize_time_unit(hours, "hour")] if hours < 24
+      return [hours, pluralize_time_unit(hours, 'hour')] if hours < 24
 
       days = hours / 24
-      return [days, pluralize_time_unit(days, "day")] if days < 30
+      return [days, pluralize_time_unit(days, 'day')] if days < 30
 
       months = days / 30
-      return [months, pluralize_time_unit(months, "month")] if months < 12
+      return [months, pluralize_time_unit(months, 'month')] if months < 12
 
       years = days / 365
-      [years, pluralize_time_unit(years, "year")]
+      [years, pluralize_time_unit(years, 'year')]
     end
 
     def pluralize_time_unit(amount, unit)
@@ -1011,7 +1012,7 @@ module Raindrop
 
     def unique_items_by_id(items)
       items.each_with_object({}) do |item, indexed_items|
-        id = item["_id"]
+        id = item['_id']
         next if id.nil?
 
         indexed_items[id] ||= item
@@ -1019,7 +1020,7 @@ module Raindrop
     end
 
     def reject_arguments!(argv)
-      raise OptionParser::InvalidArgument, argv.join(" ") unless argv.empty?
+      raise OptionParser::InvalidArgument, argv.join(' ') unless argv.empty?
     end
 
     def print_usage(io = @stdout)

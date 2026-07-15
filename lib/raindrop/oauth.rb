@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require "faraday"
-require "json"
-require "socket"
-require "uri"
+require 'faraday'
+require 'json'
+require 'socket'
+require 'uri'
 
-require_relative "errors"
+require_relative 'errors'
 
 module Raindrop
   class OAuth
-    BASE_URL = "https://api.raindrop.io/v1"
-    AUTHORIZATION_URL = "#{BASE_URL}/oauth/authorize"
-    DEFAULT_REDIRECT_URI = "http://127.0.0.1:42813/callback"
+    BASE_URL = 'https://api.raindrop.io/v1'
+    AUTHORIZATION_URL = "#{BASE_URL}/oauth/authorize".freeze
+    DEFAULT_REDIRECT_URI = 'http://127.0.0.1:42813/callback'
 
     def initialize(connection: nil)
       @connection = connection || default_connection
@@ -19,22 +19,22 @@ module Raindrop
 
     def authorization_url(client_id:, redirect_uri:)
       query = URI.encode_www_form(
-        "response_type" => "code",
-        "client_id" => client_id,
-        "redirect_uri" => redirect_uri
+        'response_type' => 'code',
+        'client_id' => client_id,
+        'redirect_uri' => redirect_uri
       )
       "#{AUTHORIZATION_URL}?#{query}"
     end
 
     def exchange_code(client_id:, client_secret:, redirect_uri:, code:)
-      response = @connection.post("oauth/access_token") do |request|
-        request.headers["Content-Type"] = "application/json"
+      response = @connection.post('oauth/access_token') do |request|
+        request.headers['Content-Type'] = 'application/json'
         request.body = JSON.generate(
-          "grant_type" => "authorization_code",
-          "code" => code,
-          "client_id" => client_id,
-          "client_secret" => client_secret,
-          "redirect_uri" => redirect_uri
+          'grant_type' => 'authorization_code',
+          'code' => code,
+          'client_id' => client_id,
+          'client_secret' => client_secret,
+          'redirect_uri' => redirect_uri
         )
       end
       handle_response(response)
@@ -48,7 +48,7 @@ module Raindrop
       socket = server.accept
       request_line = socket.gets.to_s
       code = authorization_code_from_request(request_line, expected_path: redirect.path)
-      write_callback_response(socket, "Authentication complete. You can close this window.")
+      write_callback_response(socket, 'Authentication complete. You can close this window.')
       code
     ensure
       socket&.close
@@ -59,7 +59,7 @@ module Raindrop
 
     def default_connection
       Faraday.new(url: BASE_URL) do |connection|
-        connection.headers["Accept"] = "application/json"
+        connection.headers['Accept'] = 'application/json'
       end
     end
 
@@ -67,7 +67,7 @@ module Raindrop
       payload = parse_payload(response)
       return payload if response.success?
 
-      message = payload["error"] || payload["errorMessage"] || payload["message"] || response.reason_phrase || "HTTP error"
+      message = payload['error'] || payload['errorMessage'] || payload['message'] || response.reason_phrase || 'HTTP error'
       raise ApiError, "OAuth request failed: #{response.status} #{message}"
     end
 
@@ -84,20 +84,20 @@ module Raindrop
 
     def authorization_code_from_request(request_line, expected_path:)
       target = request_line.split[1].to_s
-      raise AuthenticationError, "Authorization code is empty." if target.empty?
+      raise AuthenticationError, 'Authorization code is empty.' if target.empty?
 
       uri = URI.parse(target)
       raise AuthenticationError, "Unexpected OAuth callback path: #{uri.path}" unless uri.path == expected_path
 
       query = URI.decode_www_form(uri.query.to_s).to_h
-      raise AuthenticationError, "OAuth authorization failed: #{query.fetch("error")}" if query.key?("error")
+      raise AuthenticationError, "OAuth authorization failed: #{query.fetch('error')}" if query.key?('error')
 
-      code = query.fetch("code", "").to_s.strip
-      raise AuthenticationError, "Authorization code is empty." if code.empty?
+      code = query.fetch('code', '').to_s.strip
+      raise AuthenticationError, 'Authorization code is empty.' if code.empty?
 
       code
     rescue URI::InvalidURIError
-      raise AuthenticationError, "Authorization code is empty."
+      raise AuthenticationError, 'Authorization code is empty.'
     end
 
     def write_callback_response(socket, body)

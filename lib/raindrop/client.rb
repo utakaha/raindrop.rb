@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require "faraday"
-require "json"
+require 'faraday'
+require 'json'
 
-require_relative "errors"
+require_relative 'errors'
 
 module Raindrop
   class Client
-    BASE_URL = "https://api.raindrop.io/rest/v1"
+    BASE_URL = 'https://api.raindrop.io/rest/v1'
 
     def initialize(token:, connection: nil)
       @token = token
@@ -17,11 +17,11 @@ module Raindrop
     def search_raindrops(query, collection_id: 0, perpage: 10, page: 0, sort: nil)
       response = @connection.get("raindrops/#{collection_id}") do |request|
         request.params.update(
-          "search" => query,
-          "perpage" => perpage,
-          "page" => page
+          'search' => query,
+          'perpage' => perpage,
+          'page' => page
         )
-        request.params["sort"] = sort unless sort.to_s.empty?
+        request.params['sort'] = sort unless sort.to_s.empty?
       end
       handle_response(response)
     rescue Faraday::ConnectionFailed => e
@@ -36,8 +36,8 @@ module Raindrop
     end
 
     def create_raindrop(link, title: nil, excerpt: nil, note: nil, tags: [], collection_id: nil)
-      response = @connection.post("raindrop") do |request|
-        request.headers["Content-Type"] = "application/json"
+      response = @connection.post('raindrop') do |request|
+        request.headers['Content-Type'] = 'application/json'
         request.body = JSON.generate(create_raindrop_body(link, title, excerpt, note, tags, collection_id))
       end
       handle_response(response)
@@ -47,7 +47,7 @@ module Raindrop
 
     def update_raindrop(id, title: nil, excerpt: nil, note: nil, tags: nil, collection_id: nil)
       response = @connection.put("raindrop/#{id}") do |request|
-        request.headers["Content-Type"] = "application/json"
+        request.headers['Content-Type'] = 'application/json'
         request.body = JSON.generate(update_raindrop_body(title, excerpt, note, tags, collection_id))
       end
       handle_response(response)
@@ -71,10 +71,10 @@ module Raindrop
 
     def rename_tag(tag, replacement:, collection_id: 0)
       response = @connection.put("tags/#{collection_id}") do |request|
-        request.headers["Content-Type"] = "application/json"
+        request.headers['Content-Type'] = 'application/json'
         request.body = JSON.generate(
-          "tags" => [tag],
-          "replace" => replacement
+          'tags' => [tag],
+          'replace' => replacement
         )
       end
       handle_response(response)
@@ -83,14 +83,14 @@ module Raindrop
     end
 
     def root_collections
-      response = @connection.get("collections")
+      response = @connection.get('collections')
       handle_response(response)
     rescue Faraday::ConnectionFailed => e
       raise ApiError, "API request failed: #{e.message}"
     end
 
     def child_collections
-      response = @connection.get("collections/childrens")
+      response = @connection.get('collections/childrens')
       handle_response(response)
     rescue Faraday::ConnectionFailed => e
       raise ApiError, "API request failed: #{e.message}"
@@ -100,31 +100,31 @@ module Raindrop
 
     def default_connection
       Faraday.new(url: BASE_URL) do |connection|
-        connection.headers["Accept"] = "application/json"
-        connection.headers["Authorization"] = "Bearer #{@token}"
+        connection.headers['Accept'] = 'application/json'
+        connection.headers['Authorization'] = "Bearer #{@token}"
       end
     end
 
     def create_raindrop_body(link, title, excerpt, note, tags, collection_id)
       body = {
-        "link" => link,
-        "pleaseParse" => {}
+        'link' => link,
+        'pleaseParse' => {}
       }
-      body["title"] = title unless title.to_s.empty?
-      body["excerpt"] = excerpt unless excerpt.to_s.empty?
-      body["note"] = note unless note.to_s.empty?
-      body["tags"] = tags unless tags.empty?
-      body["collection"] = { "$id" => collection_id } unless collection_id.nil?
+      body['title'] = title unless title.to_s.empty?
+      body['excerpt'] = excerpt unless excerpt.to_s.empty?
+      body['note'] = note unless note.to_s.empty?
+      body['tags'] = tags unless tags.empty?
+      body['collection'] = { '$id' => collection_id } unless collection_id.nil?
       body
     end
 
     def update_raindrop_body(title, excerpt, note, tags, collection_id)
       body = {}
-      body["title"] = title unless title.to_s.empty?
-      body["excerpt"] = excerpt unless excerpt.to_s.empty?
-      body["note"] = note unless note.to_s.empty?
-      body["tags"] = tags unless tags.nil?
-      body["collection"] = { "$id" => collection_id } unless collection_id.nil?
+      body['title'] = title unless title.to_s.empty?
+      body['excerpt'] = excerpt unless excerpt.to_s.empty?
+      body['note'] = note unless note.to_s.empty?
+      body['tags'] = tags unless tags.nil?
+      body['collection'] = { '$id' => collection_id } unless collection_id.nil?
       body
     end
 
@@ -148,10 +148,10 @@ module Raindrop
 
     def error_message(response, payload)
       if response.status == 401
-        return "Authentication failed. The stored token may be invalid. Run `raindrop auth login` again."
+        return 'Authentication failed. The stored token may be invalid. Run `raindrop auth login` again.'
       end
 
-      message = payload["errorMessage"] || payload["message"] || response.reason_phrase || "HTTP error"
+      message = payload['errorMessage'] || payload['message'] || response.reason_phrase || 'HTTP error'
       "API request failed: #{response.status} #{message}"
     end
   end
