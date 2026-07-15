@@ -51,7 +51,7 @@ class FakeTagClient
   def tags
     {
       'items' => [
-        { '_id' => 'ruby', 'count' => 12 }
+        { '_id' => 'example', 'count' => 12 }
       ]
     }
   end
@@ -115,7 +115,7 @@ class RaindropTest < Minitest::Test
     config = FakeConfig.new(token: 'stored-token')
     stdout = StringIO.new
     stderr = StringIO.new
-    cli = Raindrop::CLI.new(['search', 'ruby', '--all'], stdout: stdout, stderr: stderr, config: config)
+    cli = Raindrop::CLI.new(['search', 'example', '--all'], stdout: stdout, stderr: stderr, config: config)
     cli.define_singleton_method(:authenticated_client) { raise Interrupt }
 
     code = cli.run
@@ -231,7 +231,7 @@ class RaindropTest < Minitest::Test
         token: 'secret-token',
         refresh_token: 'refresh-token',
         token_type: 'Bearer',
-        expires_in: 1_209_599
+        expires_in: 3600
       )
     )
 
@@ -241,7 +241,7 @@ class RaindropTest < Minitest::Test
       Access token: [REDACTED]
       Refresh token: [REDACTED]
       Token type: Bearer
-      Expires in: 1209599
+      Expires in: 3600
     OUTPUT
     assert_empty stderr
     refute_includes stdout, 'secret-token'
@@ -290,7 +290,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_add_requires_authentication
-    code, stdout, stderr, = run_cli(['add', 'https://example.com/ruby'])
+    code, stdout, stderr, = run_cli(['add', 'https://example.com/article'])
 
     assert_equal 1, code
     assert_empty stdout
@@ -315,7 +315,7 @@ class RaindropTest < Minitest::Test
 
   def test_add_rejects_extra_arguments
     code, stdout, stderr, = run_cli(
-      ['add', 'https://example.com/ruby', 'extra'],
+      ['add', 'https://example.com/article', 'extra'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -326,39 +326,39 @@ class RaindropTest < Minitest::Test
 
   def test_add_parses_json_option
     cli = Raindrop::CLI.new([])
-    argv = ['--json', 'https://example.com/ruby']
+    argv = ['--json', 'https://example.com/article']
 
     options = cli.send(:parse_add_options, argv)
 
     assert options.fetch(:json)
-    assert_equal ['https://example.com/ruby'], argv
+    assert_equal ['https://example.com/article'], argv
   end
 
   def test_add_parses_optional_fields
     cli = Raindrop::CLI.new([])
     argv = [
-      '--title', 'Ruby',
-      '--description', 'Ruby language',
+      '--title', 'Example Article',
+      '--description', 'Example article description',
       '--note', 'Read later',
-      '--tag', 'ruby',
-      '--tag', 'docs',
-      '--collection', '55596991',
-      'https://example.com/ruby'
+      '--tag', 'example',
+      '--tag', 'reference',
+      '--collection', '12345678',
+      'https://example.com/article'
     ]
 
     options = cli.send(:parse_add_options, argv)
 
-    assert_equal 'Ruby', options.fetch(:title)
-    assert_equal 'Ruby language', options.fetch(:description)
+    assert_equal 'Example Article', options.fetch(:title)
+    assert_equal 'Example article description', options.fetch(:description)
     assert_equal 'Read later', options.fetch(:note)
-    assert_equal ['ruby', 'docs'], options.fetch(:tags)
-    assert_equal 55_596_991, options.fetch(:collection_id)
-    assert_equal ['https://example.com/ruby'], argv
+    assert_equal ['example', 'reference'], options.fetch(:tags)
+    assert_equal 12_345_678, options.fetch(:collection_id)
+    assert_equal ['https://example.com/article'], argv
   end
 
   def test_add_rejects_empty_title
     code, stdout, stderr, = run_cli(
-      ['add', '--title', '', 'https://example.com/ruby'],
+      ['add', '--title', '', 'https://example.com/article'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -369,7 +369,7 @@ class RaindropTest < Minitest::Test
 
   def test_add_rejects_empty_tag
     code, stdout, stderr, = run_cli(
-      ['add', '--tag', '', 'https://example.com/ruby'],
+      ['add', '--tag', '', 'https://example.com/article'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -387,7 +387,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_search_requires_authentication
-    code, stdout, stderr, = run_cli(['search', 'ruby'])
+    code, stdout, stderr, = run_cli(['search', 'example'])
 
     assert_equal 1, code
     assert_empty stdout
@@ -395,7 +395,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_search_rejects_limit_less_than_one
-    code, stdout, stderr, = run_cli(['search', 'ruby', '--limit', '0'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '0'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -403,7 +403,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_search_rejects_limit_greater_than_fifty
-    code, stdout, stderr, = run_cli(['search', 'ruby', '--limit', '51'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '51'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -412,7 +412,7 @@ class RaindropTest < Minitest::Test
 
   def test_search_rejects_all_with_limit
     code, stdout, stderr, = run_cli(
-      ['search', 'ruby', '--all', '--limit', '20'],
+      ['search', 'example', '--all', '--limit', '20'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -423,7 +423,7 @@ class RaindropTest < Minitest::Test
 
   def test_search_rejects_all_with_explicit_default_limit
     code, stdout, stderr, = run_cli(
-      ['search', 'ruby', '--all', '--limit', '50'],
+      ['search', 'example', '--all', '--limit', '50'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -434,17 +434,17 @@ class RaindropTest < Minitest::Test
 
   def test_search_parses_collection_option
     cli = Raindrop::CLI.new([])
-    argv = ['ruby', '--collection', '123']
+    argv = ['example', '--collection', '123']
 
     options = cli.send(:parse_search_options, argv)
 
     assert_equal 123, options.fetch(:collection_id)
-    assert_equal ['ruby'], argv
+    assert_equal ['example'], argv
   end
 
   def test_search_accepts_system_collection_ids
     cli = Raindrop::CLI.new([])
-    argv = ['ruby', '--collection', '-1']
+    argv = ['example', '--collection', '-1']
 
     options = cli.send(:parse_search_options, argv)
 
@@ -453,29 +453,29 @@ class RaindropTest < Minitest::Test
 
   def test_search_parses_json_option
     cli = Raindrop::CLI.new([])
-    argv = ['ruby', '--json']
+    argv = ['example', '--json']
 
     options = cli.send(:parse_search_options, argv)
 
     assert options.fetch(:json)
-    assert_equal ['ruby'], argv
+    assert_equal ['example'], argv
   end
 
   def test_search_parses_sort_option
     cli = Raindrop::CLI.new([])
-    argv = ['ruby', '--sort', '-created']
+    argv = ['example', '--sort', '-created']
 
     options = cli.send(:parse_search_options, argv)
 
     assert_equal '-created', options.fetch(:sort)
-    assert_equal ['ruby'], argv
+    assert_equal ['example'], argv
   end
 
   def test_search_accepts_documented_sort_options
     cli = Raindrop::CLI.new([])
 
     Raindrop::CLI::SEARCH_SORTS.each do |sort|
-      argv = sort == 'score' ? ['ruby', '--sort', sort] : ['--collection', '123', '--sort', sort]
+      argv = sort == 'score' ? ['example', '--sort', sort] : ['--collection', '123', '--sort', sort]
 
       options = cli.send(:parse_search_options, argv)
 
@@ -485,7 +485,7 @@ class RaindropTest < Minitest::Test
 
   def test_search_rejects_unknown_sort
     code, stdout, stderr, = run_cli(
-      ['search', 'ruby', '--sort', 'unknown'],
+      ['search', 'example', '--sort', 'unknown'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -517,7 +517,7 @@ class RaindropTest < Minitest::Test
 
   def test_search_uses_default_collection_without_collection_option
     cli = Raindrop::CLI.new([])
-    argv = ['ruby']
+    argv = ['example']
 
     options = cli.send(:parse_search_options, argv)
 
@@ -527,34 +527,34 @@ class RaindropTest < Minitest::Test
 
   def test_search_builds_query_with_tag
     cli = Raindrop::CLI.new([])
-    argv = ['ruby']
-    options = { tags: ['docs'] }
+    argv = ['example']
+    options = { tags: ['reference'] }
 
-    assert_equal 'ruby #docs', cli.send(:build_search_query, argv, options)
+    assert_equal 'example #reference', cli.send(:build_search_query, argv, options)
   end
 
   def test_search_builds_query_with_tag_only
     cli = Raindrop::CLI.new([])
     argv = []
-    options = { tags: ['docs'] }
+    options = { tags: ['reference'] }
 
-    assert_equal '#docs', cli.send(:build_search_query, argv, options)
+    assert_equal '#reference', cli.send(:build_search_query, argv, options)
   end
 
   def test_search_accepts_multiple_tags
     cli = Raindrop::CLI.new([])
-    argv = ['ruby']
-    options = { tags: ['docs', 'rails'] }
+    argv = ['example']
+    options = { tags: ['reference', 'tutorial'] }
 
-    assert_equal 'ruby #docs #rails', cli.send(:build_search_query, argv, options)
+    assert_equal 'example #reference #tutorial', cli.send(:build_search_query, argv, options)
   end
 
   def test_search_quotes_multi_word_tag
     cli = Raindrop::CLI.new([])
-    argv = ['ruby']
+    argv = ['example']
     options = { tags: ['coffee beans'] }
 
-    assert_equal %(ruby #"coffee beans"), cli.send(:build_search_query, argv, options)
+    assert_equal %(example #"coffee beans"), cli.send(:build_search_query, argv, options)
   end
 
   def test_search_rejects_empty_tag
@@ -570,12 +570,12 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
     items = [
       {
-        '_id' => 1_668_242_775,
-        'title' => 'Example Ruby Documentation',
-        'link' => 'https://example.com/ruby-documentation'
+        '_id' => 1_234_567_890,
+        'title' => 'Example Article',
+        'link' => 'https://example.com/article'
       },
       {
-        '_id' => 1_667_301_016,
+        '_id' => 9_876_543_210,
         'title' => 'Example deployment guide with a long title that should be truncated in table output',
         'link' => 'https://example.com/articles/example-deployment-guide'
       }
@@ -587,20 +587,20 @@ class RaindropTest < Minitest::Test
       Showing 2 of 2 raindrops
 
       ID          TITLE                                                         URL                                                           SAVED AT
-      1668242775  Example Ruby Documentation                                    https://example.com/ruby-documentation
-      1667301016  Example deployment guide with a long title that should be...  https://example.com/articles/example-deployment-guide
+      1234567890  Example Article                                               https://example.com/article
+      9876543210  Example deployment guide with a long title that should be...  https://example.com/articles/example-deployment-guide
     OUTPUT
   end
 
   def test_table_helpers_count_wide_characters
     cli = Raindrop::CLI.new([])
 
-    assert_equal 6, cli.send(:display_width, 'Rubyあ')
+    assert_equal 6, cli.send(:display_width, 'Textあ')
     assert_equal 4, cli.send(:display_width, '“”─②')
     assert_equal 4, cli.send(:display_width, '👨‍💻👩‍💻')
-    assert_equal 'Rubyあ  ', cli.send(:ljust_display, 'Rubyあ', 8)
-    assert_equal 'Ruby 👨‍💻...', cli.send(:truncate_table_value, 'Ruby 👨‍💻👩‍💻XX', 10)
-    assert_equal '日本...', cli.send(:truncate_table_value, '日本語Ruby', 7)
+    assert_equal 'Textあ  ', cli.send(:ljust_display, 'Textあ', 8)
+    assert_equal 'Text 👨‍💻...', cli.send(:truncate_table_value, 'Text 👨‍💻👩‍💻XX', 10)
+    assert_equal '日本...', cli.send(:truncate_table_value, '日本語Text', 7)
   end
 
   def test_search_prints_json_items
@@ -608,9 +608,9 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
     items = [
       {
-        '_id' => 1_668_242_775,
-        'title' => 'Example Ruby Documentation',
-        'link' => 'https://example.com/ruby-documentation'
+        '_id' => 1_234_567_890,
+        'title' => 'Example Article',
+        'link' => 'https://example.com/article'
       }
     ]
 
@@ -651,7 +651,7 @@ class RaindropTest < Minitest::Test
       { 'count' => 2, 'items' => [items.fetch(page)] }
     end
 
-    cli.send(:search_all, client, 'ruby', collection_id: 123, sort: nil, json: false)
+    cli.send(:search_all, client, 'example', collection_id: 123, sort: nil, json: false)
 
     assert_equal 1, stdout.string.scan('ID').size
     assert_includes stdout.string, 'Showing 2 of 2 raindrops'
@@ -668,7 +668,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_get_requires_authentication
-    code, stdout, stderr, = run_cli(['get', '1668242775'])
+    code, stdout, stderr, = run_cli(['get', '1234567890'])
 
     assert_equal 1, code
     assert_empty stdout
@@ -676,7 +676,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_get_rejects_extra_arguments
-    code, stdout, stderr, = run_cli(['get', '1668242775', 'extra'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['get', '1234567890', 'extra'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -701,36 +701,36 @@ class RaindropTest < Minitest::Test
 
   def test_get_parses_json_option
     cli = Raindrop::CLI.new([])
-    argv = ['--json', '1668242775']
+    argv = ['--json', '1234567890']
 
     options = cli.send(:parse_get_options, argv)
 
     assert options.fetch(:json)
-    assert_equal ['1668242775'], argv
+    assert_equal ['1234567890'], argv
   end
 
   def test_get_prints_human_readable_item
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
-      '_id' => 1_668_242_775,
-      'title' => 'Example Ruby Documentation',
-      'link' => 'https://example.com/ruby-documentation',
-      'tags' => ['ruby', 'docs'],
-      'created' => '2026-04-01T12:48:22.646Z',
-      'lastUpdate' => '2026-04-01T12:48:22.646Z',
+      '_id' => 1_234_567_890,
+      'title' => 'Example Article',
+      'link' => 'https://example.com/article',
+      'tags' => ['example', 'reference'],
+      'created' => '2024-01-02T03:04:05.000Z',
+      'lastUpdate' => '2024-01-02T03:04:05.000Z',
       'excerpt' => 'Example documentation gets a fresh look.'
     }
 
     cli.send(:print_raindrop_detail, item)
 
     assert_equal <<~OUTPUT, stdout.string
-      ID: 1668242775
-      Title: Example Ruby Documentation
-      URL: https://example.com/ruby-documentation
-      Tags: ruby, docs
-      Saved: 2026-04-01T12:48:22.646Z
-      Updated: 2026-04-01T12:48:22.646Z
+      ID: 1234567890
+      Title: Example Article
+      URL: https://example.com/article
+      Tags: example, reference
+      Saved: 2024-01-02T03:04:05.000Z
+      Updated: 2024-01-02T03:04:05.000Z
       Description:
       Example documentation gets a fresh look.
     OUTPUT
@@ -740,9 +740,9 @@ class RaindropTest < Minitest::Test
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
     item = {
-      '_id' => 1_668_242_775,
-      'title' => 'Example Ruby Documentation',
-      'link' => 'https://example.com/ruby-documentation'
+      '_id' => 1_234_567_890,
+      'title' => 'Example Article',
+      'link' => 'https://example.com/article'
     }
 
     cli.send(:print_json_item, item)
@@ -751,7 +751,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_requires_id
-    code, stdout, stderr, = run_cli(['update', '--title', 'Ruby'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['update', '--title', 'Example Article'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -759,7 +759,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_requires_authentication
-    code, stdout, stderr, = run_cli(['update', '1668242775', '--title', 'Ruby'])
+    code, stdout, stderr, = run_cli(['update', '1234567890', '--title', 'Example Article'])
 
     assert_equal 1, code
     assert_empty stdout
@@ -767,7 +767,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_requires_update_option
-    code, stdout, stderr, = run_cli(['update', '1668242775'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['update', '1234567890'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -776,7 +776,7 @@ class RaindropTest < Minitest::Test
 
   def test_update_rejects_extra_arguments
     code, stdout, stderr, = run_cli(
-      ['update', '1668242775', '--title', 'Ruby', 'extra'],
+      ['update', '1234567890', '--title', 'Example Article', 'extra'],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -786,7 +786,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_rejects_invalid_id
-    code, stdout, stderr, = run_cli(['update', 'abc', '--title', 'Ruby'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['update', 'abc', '--title', 'Example Article'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -796,30 +796,30 @@ class RaindropTest < Minitest::Test
   def test_update_parses_optional_fields
     cli = Raindrop::CLI.new([])
     argv = [
-      '--title', 'Ruby',
-      '--description', 'Ruby language',
+      '--title', 'Example Article',
+      '--description', 'Example article description',
       '--note', 'Read later',
-      '--tag', 'ruby',
-      '--tag', 'docs',
-      '--collection', '55596991',
+      '--tag', 'example',
+      '--tag', 'reference',
+      '--collection', '12345678',
       '--json',
-      '1668242775'
+      '1234567890'
     ]
 
     options = cli.send(:parse_update_options, argv)
 
-    assert_equal 'Ruby', options.fetch(:title)
-    assert_equal 'Ruby language', options.fetch(:description)
+    assert_equal 'Example Article', options.fetch(:title)
+    assert_equal 'Example article description', options.fetch(:description)
     assert_equal 'Read later', options.fetch(:note)
-    assert_equal ['ruby', 'docs'], options.fetch(:tags)
-    assert_equal 55_596_991, options.fetch(:collection_id)
+    assert_equal ['example', 'reference'], options.fetch(:tags)
+    assert_equal 12_345_678, options.fetch(:collection_id)
     assert options.fetch(:json)
-    assert_equal ['1668242775'], argv
+    assert_equal ['1234567890'], argv
   end
 
   def test_update_rejects_empty_title
     code, stdout, stderr, = run_cli(
-      ['update', '1668242775', '--title', ''],
+      ['update', '1234567890', '--title', ''],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -830,7 +830,7 @@ class RaindropTest < Minitest::Test
 
   def test_update_rejects_empty_tag
     code, stdout, stderr, = run_cli(
-      ['update', '1668242775', '--tag', ''],
+      ['update', '1234567890', '--tag', ''],
       config: FakeConfig.new(token: 'stored-token')
     )
 
@@ -849,17 +849,17 @@ class RaindropTest < Minitest::Test
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
     options = {
-      title: 'Ruby',
+      title: 'Example Article',
       description: nil,
       note: 'Read later',
-      tags: ['ruby'],
+      tags: ['example'],
       collection_id: nil
     }
 
-    cli.send(:print_update_result, 1_668_242_775, options)
+    cli.send(:print_update_result, 1_234_567_890, options)
 
     assert_equal <<~OUTPUT, stdout.string
-      Updated raindrop: 1668242775
+      Updated raindrop: 1234567890
       Changed: title, note, tags
 
     OUTPUT
@@ -874,7 +874,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_delete_requires_authentication
-    code, stdout, stderr, = run_cli(['delete', '1668242775'])
+    code, stdout, stderr, = run_cli(['delete', '1234567890'])
 
     assert_equal 1, code
     assert_empty stdout
@@ -882,7 +882,7 @@ class RaindropTest < Minitest::Test
   end
 
   def test_delete_rejects_extra_arguments
-    code, stdout, stderr, = run_cli(['delete', '1668242775', 'extra'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['delete', '1234567890', 'extra'], config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -899,28 +899,28 @@ class RaindropTest < Minitest::Test
 
   def test_delete_parses_json_option
     cli = Raindrop::CLI.new([])
-    argv = ['--json', '1668242775']
+    argv = ['--json', '1234567890']
 
     options = cli.send(:parse_delete_options, argv)
 
     assert options.fetch(:json)
-    assert_equal ['1668242775'], argv
+    assert_equal ['1234567890'], argv
   end
 
   def test_delete_prints_human_readable_result
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
 
-    cli.send(:print_delete_result, 1_668_242_775, { 'result' => true })
+    cli.send(:print_delete_result, 1_234_567_890, { 'result' => true })
 
-    assert_equal "Deleted raindrop: 1668242775\n", stdout.string
+    assert_equal "Deleted raindrop: 1234567890\n", stdout.string
   end
 
   def test_delete_prints_json_result
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
 
-    cli.send(:print_delete_result, 1_668_242_775, { 'result' => true }, json: true)
+    cli.send(:print_delete_result, 1_234_567_890, { 'result' => true }, json: true)
 
     assert_equal({ 'result' => true }, JSON.parse(stdout.string))
   end
@@ -937,7 +937,7 @@ class RaindropTest < Minitest::Test
     code, stdout, stderr = run_cli_with_client(['tags'], FakeTagClient.new)
 
     assert_equal 0, code
-    assert_includes stdout, 'ruby'
+    assert_includes stdout, 'example'
     assert_empty stderr
   end
 
@@ -945,7 +945,7 @@ class RaindropTest < Minitest::Test
     client = FakeTagClient.new
 
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', 'ruby-lang', 'ruby', '--collection', '55596991'],
+      ['tags', 'rename', 'old-tag', 'example', '--collection', '12345678'],
       client
     )
 
@@ -953,20 +953,20 @@ class RaindropTest < Minitest::Test
     assert_equal(
       [
         {
-          tag: 'ruby-lang',
-          replacement: 'ruby',
-          collection_id: 55_596_991
+          tag: 'old-tag',
+          replacement: 'example',
+          collection_id: 12_345_678
         }
       ],
       client.rename_calls
     )
-    assert_equal "Renamed tag: ruby-lang -> ruby\n", stdout
+    assert_equal "Renamed tag: old-tag -> example\n", stdout
     assert_empty stderr
   end
 
   def test_tags_rename_prints_json_result
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', 'ruby-lang', 'ruby', '--json'],
+      ['tags', 'rename', 'old-tag', 'example', '--json'],
       FakeTagClient.new
     )
 
@@ -977,7 +977,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_rename_requires_old_and_new_names
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', 'ruby-lang'],
+      ['tags', 'rename', 'old-tag'],
       FakeTagClient.new
     )
 
@@ -988,7 +988,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_rename_rejects_empty_name
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', ' ', 'ruby'],
+      ['tags', 'rename', ' ', 'example'],
       FakeTagClient.new
     )
 
@@ -999,7 +999,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_rename_rejects_same_name
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', 'ruby', 'ruby'],
+      ['tags', 'rename', 'example', 'example'],
       FakeTagClient.new
     )
 
@@ -1010,7 +1010,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_rename_rejects_non_positive_collection
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'rename', 'ruby-lang', 'ruby', '--collection', '0'],
+      ['tags', 'rename', 'old-tag', 'example', '--collection', '0'],
       FakeTagClient.new
     )
 
@@ -1024,8 +1024,8 @@ class RaindropTest < Minitest::Test
 
     code, stdout, stderr = run_cli_with_client(
       [
-        'tags', 'merge', 'ruby-lang', 'ruby-lang', 'ruby', 'ruby-language',
-        '--into', 'ruby', '--collection', '55596991'
+        'tags', 'merge', 'old-tag', 'old-tag', 'example', 'legacy-tag',
+        '--into', 'example', '--collection', '12345678'
       ],
       client
     )
@@ -1034,14 +1034,14 @@ class RaindropTest < Minitest::Test
     assert_equal(
       [
         {
-          tags: ['ruby-lang', 'ruby-language'],
-          replacement: 'ruby',
-          collection_id: 55_596_991
+          tags: ['old-tag', 'legacy-tag'],
+          replacement: 'example',
+          collection_id: 12_345_678
         }
       ],
       client.merge_calls
     )
-    assert_equal "Merged tags into ruby: ruby-lang, ruby-language\n", stdout
+    assert_equal "Merged tags into example: old-tag, legacy-tag\n", stdout
     assert_empty stderr
   end
 
@@ -1049,7 +1049,7 @@ class RaindropTest < Minitest::Test
     client = FakeTagClient.new
 
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', 'ruby-language', '--into', 'ruby', '--json'],
+      ['tags', 'merge', 'old-tag', 'legacy-tag', '--into', 'example', '--json'],
       client
     )
 
@@ -1061,7 +1061,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_merge_requires_replacement
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', 'ruby-language'],
+      ['tags', 'merge', 'old-tag', 'legacy-tag'],
       FakeTagClient.new
     )
 
@@ -1072,7 +1072,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_merge_requires_two_source_tags
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', '--into', 'ruby'],
+      ['tags', 'merge', 'old-tag', '--into', 'example'],
       FakeTagClient.new
     )
 
@@ -1083,7 +1083,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_merge_rejects_empty_source_tag
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', ' ', '--into', 'ruby'],
+      ['tags', 'merge', 'old-tag', ' ', '--into', 'example'],
       FakeTagClient.new
     )
 
@@ -1094,7 +1094,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_merge_rejects_empty_replacement
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', 'ruby-language', '--into', ' '],
+      ['tags', 'merge', 'old-tag', 'legacy-tag', '--into', ' '],
       FakeTagClient.new
     )
 
@@ -1105,7 +1105,7 @@ class RaindropTest < Minitest::Test
 
   def test_tags_merge_rejects_too_few_tags_after_normalization
     code, stdout, stderr = run_cli_with_client(
-      ['tags', 'merge', 'ruby-lang', 'ruby-lang', 'ruby', '--into', 'ruby'],
+      ['tags', 'merge', 'old-tag', 'old-tag', 'example', '--into', 'example'],
       FakeTagClient.new
     )
 
@@ -1140,7 +1140,7 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
 
     cli.send(:print_tags, [
-               { '_id' => 'ruby', 'count' => 12 },
+               { '_id' => 'example', 'count' => 12 },
                { '_id' => 'long tag name that should be truncated in table output', 'count' => 3 }
              ])
 
@@ -1148,7 +1148,7 @@ class RaindropTest < Minitest::Test
       Showing 2 of 2 tags
 
       TAG                                       COUNT
-      ruby                                      12
+      example                                   12
       long tag name that should be truncate...  3
     OUTPUT
   end
@@ -1174,29 +1174,29 @@ class RaindropTest < Minitest::Test
     cli = Raindrop::CLI.new([], stdout: stdout)
 
     cli.send(:print_collections, [
-               { '_id' => 55_596_991, 'title' => 'Development', 'count' => 42 },
-               { '_id' => 123, 'title' => 'Ruby', 'count' => 8 }
+               { '_id' => 12_345_678, 'title' => 'Sample Collection', 'count' => 42 },
+               { '_id' => 123, 'title' => 'Example Collection', 'count' => 8 }
              ])
 
     assert_equal <<~OUTPUT, stdout.string
       Showing 2 of 2 collections
 
-      ID        TITLE        COUNT
-      55596991  Development  42
-      123       Ruby         8
+      ID        TITLE               COUNT
+      12345678  Sample Collection   42
+      123       Example Collection  8
     OUTPUT
   end
 
   def test_collections_deduplicates_items_by_id
     cli = Raindrop::CLI.new([])
     items = [
-      { '_id' => 55_596_991, 'title' => 'Pocket', 'count' => 2368 },
-      { '_id' => 55_596_991, 'title' => 'Pocket', 'count' => 2368 },
-      { '_id' => 123, 'title' => 'Ruby', 'count' => 8 }
+      { '_id' => 12_345_678, 'title' => 'Example Collection', 'count' => 2 },
+      { '_id' => 12_345_678, 'title' => 'Example Collection', 'count' => 2 },
+      { '_id' => 123, 'title' => 'Sample Collection', 'count' => 1 }
     ]
 
     deduplicated_items = cli.send(:unique_items_by_id, items)
 
-    assert_equal([55_596_991, 123], deduplicated_items.map { |item| item.fetch('_id') })
+    assert_equal([12_345_678, 123], deduplicated_items.map { |item| item.fetch('_id') })
   end
 end

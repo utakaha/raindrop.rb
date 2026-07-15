@@ -20,6 +20,8 @@ raindrop --help
 
 ## Quick Start
 
+All URLs, IDs, names, and metadata in the examples are fictitious and do not refer to data from a real Raindrop.io account.
+
 Create an OAuth application in Raindrop.io and register this Redirect URL:
 
 ```text
@@ -37,25 +39,25 @@ raindrop auth login \
 Search your saved raindrops:
 
 ```sh
-raindrop search ruby
+raindrop search example
 ```
 
 Inspect a raindrop:
 
 ```sh
-raindrop get 1352782792
+raindrop get 1234567890
 ```
 
 Add a new link:
 
 ```sh
-raindrop add https://www.ruby-lang.org/
+raindrop add https://example.com/article
 ```
 
 Update an existing raindrop:
 
 ```sh
-raindrop update 1352782792 --title "Ruby" --tag ruby
+raindrop update 1234567890 --title "Example Article" --tag example
 ```
 
 ## Authentication
@@ -104,21 +106,21 @@ raindrop auth logout
 Search saved raindrops:
 
 ```sh
-raindrop search ruby
+raindrop search example
 ```
 
 By default, `search` returns up to 50 items. You can specify a smaller limit:
 
 ```sh
-raindrop search ruby --limit 20
+raindrop search example --limit 20
 ```
 
 Sort results:
 
 ```sh
-raindrop search ruby --sort score
-raindrop search ruby --sort -created
-raindrop search ruby --sort title
+raindrop search example --sort score
+raindrop search example --sort -created
+raindrop search example --sort title
 ```
 
 Supported sort values are `-created`, `created`, `score`, `-sort`, `title`, `-title`, `domain`, and `-domain`. `score` requires a search query.
@@ -126,7 +128,7 @@ Supported sort values are `-created`, `created`, `score`, `-sort`, `title`, `-ti
 Fetch all matching pages with `--all`:
 
 ```sh
-raindrop search ruby --all
+raindrop search example --all
 ```
 
 `--all` waits one second between pages to avoid sending requests too aggressively. It cannot be combined with `--limit`.
@@ -134,15 +136,15 @@ raindrop search ruby --all
 Filter by tag:
 
 ```sh
-raindrop search --tag Auth
-raindrop search ruby --tag docs --tag rails
+raindrop search --tag example
+raindrop search example --tag reference --tag tutorial
 ```
 
 Filter by collection:
 
 ```sh
-raindrop search --collection 55596991
-raindrop search ruby --collection 55596991
+raindrop search --collection 12345678
+raindrop search example --collection 12345678
 ```
 
 When `--collection` is provided, the search query itself is optional.
@@ -150,7 +152,7 @@ When `--collection` is provided, the search query itself is optional.
 Output JSON:
 
 ```sh
-raindrop search ruby --json
+raindrop search example --json
 ```
 
 ### Get
@@ -158,13 +160,13 @@ raindrop search ruby --json
 Show a single saved raindrop:
 
 ```sh
-raindrop get 1352782792
+raindrop get 1234567890
 ```
 
 Output JSON:
 
 ```sh
-raindrop get 1352782792 --json
+raindrop get 1234567890 --json
 ```
 
 ### Add
@@ -172,25 +174,25 @@ raindrop get 1352782792 --json
 Add a URL:
 
 ```sh
-raindrop add https://www.ruby-lang.org/
+raindrop add https://example.com/article
 ```
 
 Add a URL with metadata:
 
 ```sh
-raindrop add https://www.ruby-lang.org/ \
-  --title Ruby \
-  --description "Ruby language" \
+raindrop add https://example.com/article \
+  --title "Example Article" \
+  --description "Example article description" \
   --note "Read later" \
-  --tag ruby \
-  --tag docs \
-  --collection 55596991
+  --tag example \
+  --tag reference \
+  --collection 12345678
 ```
 
 Output JSON:
 
 ```sh
-raindrop add https://www.ruby-lang.org/ --json
+raindrop add https://example.com/article --json
 ```
 
 ### Update
@@ -198,13 +200,13 @@ raindrop add https://www.ruby-lang.org/ --json
 Update a saved raindrop by ID:
 
 ```sh
-raindrop update 1352782792 \
-  --title Ruby \
-  --description "Ruby language" \
+raindrop update 1234567890 \
+  --title "Example Article" \
+  --description "Example article description" \
   --note "Read later" \
-  --tag ruby \
-  --tag docs \
-  --collection 55596991
+  --tag example \
+  --tag reference \
+  --collection 12345678
 ```
 
 At least one update option is required. Tags replace the raindrop's tag list with the tags passed on the command line.
@@ -212,7 +214,7 @@ At least one update option is required. Tags replace the raindrop's tag list wit
 Output JSON:
 
 ```sh
-raindrop update 1352782792 --title Ruby --json
+raindrop update 1234567890 --title "Example Article" --json
 ```
 
 ### Delete
@@ -220,13 +222,13 @@ raindrop update 1352782792 --title Ruby --json
 Delete a saved raindrop by ID:
 
 ```sh
-raindrop delete 1352782792
+raindrop delete 1234567890
 ```
 
 Output JSON:
 
 ```sh
-raindrop delete 1352782792 --json
+raindrop delete 1234567890 --json
 ```
 
 ### Tags
@@ -240,13 +242,13 @@ raindrop tags
 Rename a tag in all collections:
 
 ```sh
-raindrop tags rename ruby-lang ruby
+raindrop tags rename old-tag new-tag
 ```
 
 Restrict the rename to one collection:
 
 ```sh
-raindrop tags rename ruby-lang ruby --collection 55596991
+raindrop tags rename old-tag new-tag --collection 12345678
 ```
 
 When `--collection` is omitted, the tag is renamed across all collections. The old and new tag names must be different.
@@ -254,19 +256,19 @@ When `--collection` is omitted, the tag is renamed across all collections. The o
 Output the API response as JSON:
 
 ```sh
-raindrop tags rename ruby-lang ruby --json
+raindrop tags rename old-tag new-tag --json
 ```
 
 Merge two or more tags into one tag:
 
 ```sh
-raindrop tags merge ruby-lang ruby-language --into ruby
+raindrop tags merge old-tag legacy-tag --into new-tag
 ```
 
 Restrict the merge to one collection:
 
 ```sh
-raindrop tags merge ruby-lang ruby-language --into ruby --collection 55596991
+raindrop tags merge old-tag legacy-tag --into new-tag --collection 12345678
 ```
 
 When `--collection` is omitted, the tags are merged across all collections. Duplicate source tags and the destination tag are removed from the source list, and at least two source tags must remain.
@@ -274,7 +276,7 @@ When `--collection` is omitted, the tags are merged across all collections. Dupl
 Output the API response as JSON:
 
 ```sh
-raindrop tags merge ruby-lang ruby-language --into ruby --json
+raindrop tags merge old-tag legacy-tag --into new-tag --json
 ```
 
 Show the available tag management commands:
@@ -318,7 +320,7 @@ Auth: oauth
 Access token: [REDACTED]
 Refresh token: [REDACTED]
 Token type: Bearer
-Expires in: 1209599
+Expires in: 3600
 ```
 
 Access tokens and refresh tokens are never printed by `raindrop config`.

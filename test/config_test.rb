@@ -26,14 +26,14 @@ class ConfigTest < Minitest::Test
           'access_token' => 'access-token',
           'refresh_token' => 'refresh-token',
           'token_type' => 'Bearer',
-          'expires_in' => 1_209_599
+          'expires_in' => 3600
         )
 
         assert_equal 'oauth', config.auth_type
         assert_equal 'access-token', config.access_token
         assert config.refresh_token?
         assert_equal 'Bearer', config.token_type
-        assert_equal 1_209_599, config.expires_in
+        assert_equal 3600, config.expires_in
       end
     end
   end

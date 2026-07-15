@@ -11,7 +11,7 @@ class ClientTest < Minitest::Test
       stub.get('/rest/v1/raindrops/123') do |env|
         assert_equal 'Bearer secret-token', env.request_headers['Authorization']
         assert_equal 'application/json', env.request_headers['Accept']
-        assert_equal 'ruby docs', env.params.fetch('search')
+        assert_equal 'example reference', env.params.fetch('search')
         assert_equal '50', env.params.fetch('perpage')
         assert_equal '2', env.params.fetch('page')
         assert_equal '-created', env.params.fetch('sort')
@@ -23,8 +23,8 @@ class ClientTest < Minitest::Test
             'items' => [
               {
                 '_id' => 123,
-                'title' => 'Ruby',
-                'link' => 'https://example.com/ruby'
+                'title' => 'Example Article',
+                'link' => 'https://example.com/article'
               }
             ]
           }.to_json
@@ -33,7 +33,7 @@ class ClientTest < Minitest::Test
     end
 
     payload = client_with(stubs, token: 'secret-token').search_raindrops(
-      'ruby docs',
+      'example reference',
       collection_id: 123,
       perpage: 50,
       page: 2,
@@ -56,7 +56,7 @@ class ClientTest < Minitest::Test
     end
 
     error = assert_raises(Raindrop::ApiError) do
-      client_with(stubs, token: 'bad-token').search_raindrops('ruby')
+      client_with(stubs, token: 'bad-token').search_raindrops('example')
     end
 
     assert_includes error.message, 'Authentication failed.'
@@ -75,7 +75,7 @@ class ClientTest < Minitest::Test
     end
 
     error = assert_raises(Raindrop::ApiError) do
-      client_with(stubs, token: 'secret-token').search_raindrops('ruby')
+      client_with(stubs, token: 'secret-token').search_raindrops('example')
     end
 
     assert_equal 'API request failed: 500 Server failed', error.message
@@ -94,7 +94,7 @@ class ClientTest < Minitest::Test
     end
 
     error = assert_raises(Raindrop::ApiError) do
-      client_with(stubs, token: 'secret-token').search_raindrops('ruby')
+      client_with(stubs, token: 'secret-token').search_raindrops('example')
     end
 
     assert_equal 'API request failed: 404 HTTP error', error.message
@@ -103,7 +103,7 @@ class ClientTest < Minitest::Test
 
   def test_get_raindrop_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.get('/rest/v1/raindrop/1668242775') do |env|
+      stub.get('/rest/v1/raindrop/1234567890') do |env|
         assert_equal 'Bearer secret-token', env.request_headers['Authorization']
         assert_equal 'application/json', env.request_headers['Accept']
 
@@ -112,18 +112,18 @@ class ClientTest < Minitest::Test
           { 'Content-Type' => 'application/json' },
           {
             'item' => {
-              '_id' => 1_668_242_775,
-              'title' => 'Ruby',
-              'link' => 'https://example.com/ruby'
+              '_id' => 1_234_567_890,
+              'title' => 'Example Article',
+              'link' => 'https://example.com/article'
             }
           }.to_json
         ]
       end
     end
 
-    payload = client_with(stubs, token: 'secret-token').get_raindrop(1_668_242_775)
+    payload = client_with(stubs, token: 'secret-token').get_raindrop(1_234_567_890)
 
-    assert_equal 1_668_242_775, payload.fetch('item').fetch('_id')
+    assert_equal 1_234_567_890, payload.fetch('item').fetch('_id')
     stubs.verify_stubbed_calls
   end
 
@@ -135,7 +135,7 @@ class ClientTest < Minitest::Test
         assert_equal 'application/json', env.request_headers['Content-Type']
         assert_equal(
           {
-            'link' => 'https://example.com/ruby',
+            'link' => 'https://example.com/article',
             'pleaseParse' => {}
           },
           JSON.parse(env.body)
@@ -147,15 +147,15 @@ class ClientTest < Minitest::Test
           {
             'item' => {
               '_id' => 123,
-              'title' => 'Ruby',
-              'link' => 'https://example.com/ruby'
+              'title' => 'Example Article',
+              'link' => 'https://example.com/article'
             }
           }.to_json
         ]
       end
     end
 
-    payload = client_with(stubs, token: 'secret-token').create_raindrop('https://example.com/ruby')
+    payload = client_with(stubs, token: 'secret-token').create_raindrop('https://example.com/article')
 
     assert_equal 123, payload.fetch('item').fetch('_id')
     stubs.verify_stubbed_calls
@@ -166,13 +166,13 @@ class ClientTest < Minitest::Test
       stub.post('/rest/v1/raindrop') do |env|
         assert_equal(
           {
-            'link' => 'https://example.com/ruby',
+            'link' => 'https://example.com/article',
             'pleaseParse' => {},
-            'title' => 'Ruby',
-            'excerpt' => 'Ruby language',
+            'title' => 'Example Article',
+            'excerpt' => 'Example article description',
             'note' => 'Read later',
-            'tags' => ['ruby', 'docs'],
-            'collection' => { '$id' => 55_596_991 }
+            'tags' => ['example', 'reference'],
+            'collection' => { '$id' => 12_345_678 }
           },
           JSON.parse(env.body)
         )
@@ -183,8 +183,8 @@ class ClientTest < Minitest::Test
           {
             'item' => {
               '_id' => 123,
-              'title' => 'Ruby',
-              'link' => 'https://example.com/ruby'
+              'title' => 'Example Article',
+              'link' => 'https://example.com/article'
             }
           }.to_json
         ]
@@ -192,12 +192,12 @@ class ClientTest < Minitest::Test
     end
 
     client_with(stubs, token: 'secret-token').create_raindrop(
-      'https://example.com/ruby',
-      title: 'Ruby',
-      excerpt: 'Ruby language',
+      'https://example.com/article',
+      title: 'Example Article',
+      excerpt: 'Example article description',
       note: 'Read later',
-      tags: ['ruby', 'docs'],
-      collection_id: 55_596_991
+      tags: ['example', 'reference'],
+      collection_id: 12_345_678
     )
 
     stubs.verify_stubbed_calls
@@ -205,17 +205,17 @@ class ClientTest < Minitest::Test
 
   def test_update_raindrop_sends_authorized_json_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.put('/rest/v1/raindrop/1668242775') do |env|
+      stub.put('/rest/v1/raindrop/1234567890') do |env|
         assert_equal 'Bearer secret-token', env.request_headers['Authorization']
         assert_equal 'application/json', env.request_headers['Accept']
         assert_equal 'application/json', env.request_headers['Content-Type']
         assert_equal(
           {
-            'title' => 'Ruby',
-            'excerpt' => 'Ruby language',
+            'title' => 'Example Article',
+            'excerpt' => 'Example article description',
             'note' => 'Read later',
-            'tags' => ['ruby', 'docs'],
-            'collection' => { '$id' => 55_596_991 }
+            'tags' => ['example', 'reference'],
+            'collection' => { '$id' => 12_345_678 }
           },
           JSON.parse(env.body)
         )
@@ -225,9 +225,9 @@ class ClientTest < Minitest::Test
           { 'Content-Type' => 'application/json' },
           {
             'item' => {
-              '_id' => 1_668_242_775,
-              'title' => 'Ruby',
-              'link' => 'https://example.com/ruby'
+              '_id' => 1_234_567_890,
+              'title' => 'Example Article',
+              'link' => 'https://example.com/article'
             }
           }.to_json
         ]
@@ -235,24 +235,24 @@ class ClientTest < Minitest::Test
     end
 
     payload = client_with(stubs, token: 'secret-token').update_raindrop(
-      1_668_242_775,
-      title: 'Ruby',
-      excerpt: 'Ruby language',
+      1_234_567_890,
+      title: 'Example Article',
+      excerpt: 'Example article description',
       note: 'Read later',
-      tags: ['ruby', 'docs'],
-      collection_id: 55_596_991
+      tags: ['example', 'reference'],
+      collection_id: 12_345_678
     )
 
-    assert_equal 1_668_242_775, payload.fetch('item').fetch('_id')
+    assert_equal 1_234_567_890, payload.fetch('item').fetch('_id')
     stubs.verify_stubbed_calls
   end
 
   def test_update_raindrop_omits_unspecified_fields
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.put('/rest/v1/raindrop/1668242775') do |env|
+      stub.put('/rest/v1/raindrop/1234567890') do |env|
         assert_equal(
           {
-            'title' => 'Ruby'
+            'title' => 'Example Article'
           },
           JSON.parse(env.body)
         )
@@ -262,22 +262,22 @@ class ClientTest < Minitest::Test
           { 'Content-Type' => 'application/json' },
           {
             'item' => {
-              '_id' => 1_668_242_775,
-              'title' => 'Ruby'
+              '_id' => 1_234_567_890,
+              'title' => 'Example Article'
             }
           }.to_json
         ]
       end
     end
 
-    client_with(stubs, token: 'secret-token').update_raindrop(1_668_242_775, title: 'Ruby')
+    client_with(stubs, token: 'secret-token').update_raindrop(1_234_567_890, title: 'Example Article')
 
     stubs.verify_stubbed_calls
   end
 
   def test_delete_raindrop_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.delete('/rest/v1/raindrop/1668242775') do |env|
+      stub.delete('/rest/v1/raindrop/1234567890') do |env|
         assert_equal 'Bearer secret-token', env.request_headers['Authorization']
         assert_equal 'application/json', env.request_headers['Accept']
 
@@ -289,7 +289,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    payload = client_with(stubs, token: 'secret-token').delete_raindrop(1_668_242_775)
+    payload = client_with(stubs, token: 'secret-token').delete_raindrop(1_234_567_890)
 
     assert_equal true, payload.fetch('result')
     stubs.verify_stubbed_calls
@@ -307,7 +307,7 @@ class ClientTest < Minitest::Test
           {
             'items' => [
               {
-                '_id' => 'ruby',
+                '_id' => 'example',
                 'count' => 12
               }
             ]
@@ -318,7 +318,7 @@ class ClientTest < Minitest::Test
 
     payload = client_with(stubs, token: 'secret-token').tags
 
-    assert_equal 'ruby', payload.fetch('items').first.fetch('_id')
+    assert_equal 'example', payload.fetch('items').first.fetch('_id')
     stubs.verify_stubbed_calls
   end
 
@@ -330,8 +330,8 @@ class ClientTest < Minitest::Test
         assert_equal 'application/json', env.request_headers['Content-Type']
         assert_equal(
           {
-            'tags' => ['ruby-lang'],
-            'replace' => 'ruby'
+            'tags' => ['old-tag'],
+            'replace' => 'example'
           },
           JSON.parse(env.body)
         )
@@ -344,7 +344,7 @@ class ClientTest < Minitest::Test
       end
     end
 
-    payload = client_with(stubs, token: 'secret-token').rename_tag('ruby-lang', replacement: 'ruby')
+    payload = client_with(stubs, token: 'secret-token').rename_tag('old-tag', replacement: 'example')
 
     assert_equal true, payload.fetch('result')
     stubs.verify_stubbed_calls
@@ -352,14 +352,14 @@ class ClientTest < Minitest::Test
 
   def test_merge_tags_sends_authorized_json_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.put('/rest/v1/tags/55596991') do |env|
+      stub.put('/rest/v1/tags/12345678') do |env|
         assert_equal 'Bearer secret-token', env.request_headers['Authorization']
         assert_equal 'application/json', env.request_headers['Accept']
         assert_equal 'application/json', env.request_headers['Content-Type']
         assert_equal(
           {
-            'tags' => ['ruby-lang', 'ruby-language'],
-            'replace' => 'ruby'
+            'tags' => ['old-tag', 'legacy-tag'],
+            'replace' => 'example'
           },
           JSON.parse(env.body)
         )
@@ -373,9 +373,9 @@ class ClientTest < Minitest::Test
     end
 
     payload = client_with(stubs, token: 'secret-token').merge_tags(
-      ['ruby-lang', 'ruby-language'],
-      replacement: 'ruby',
-      collection_id: 55_596_991
+      ['old-tag', 'legacy-tag'],
+      replacement: 'example',
+      collection_id: 12_345_678
     )
 
     assert_equal true, payload.fetch('result')
@@ -395,7 +395,7 @@ class ClientTest < Minitest::Test
             'items' => [
               {
                 '_id' => 123,
-                'title' => 'Development',
+                'title' => 'Sample Collection',
                 'count' => 16
               }
             ]
@@ -423,7 +423,7 @@ class ClientTest < Minitest::Test
             'items' => [
               {
                 '_id' => 456,
-                'title' => 'Ruby',
+                'title' => 'Example Article',
                 'count' => 8
               }
             ]
@@ -446,7 +446,7 @@ class ClientTest < Minitest::Test
     client = Raindrop::Client.new(token: 'secret-token', connection: connection)
 
     error = assert_raises(Raindrop::ApiError) do
-      client.search_raindrops('ruby')
+      client.search_raindrops('example')
     end
     assert_equal 'API request failed: network is unreachable', error.message
   end

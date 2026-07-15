@@ -42,7 +42,7 @@ class OAuthTest < Minitest::Test
           {
             'access_token' => 'access-token',
             'refresh_token' => 'refresh-token',
-            'expires_in' => 1_209_599,
+            'expires_in' => 3600,
             'token_type' => 'Bearer'
           }.to_json
         ]
