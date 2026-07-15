@@ -41,10 +41,11 @@ class FakeConfig
 end
 
 class FakeTagClient
-  attr_reader :merge_calls, :rename_calls
+  attr_reader :merge_calls, :remove_calls, :rename_calls
 
   def initialize
     @merge_calls = []
+    @remove_calls = []
     @rename_calls = []
   end
 
@@ -69,6 +70,14 @@ class FakeTagClient
     @merge_calls << {
       tags: tags,
       replacement: replacement,
+      collection_id: collection_id
+    }
+    { 'result' => true }
+  end
+
+  def remove_tags(tags, collection_id: 0)
+    @remove_calls << {
+      tags: tags,
       collection_id: collection_id
     }
     { 'result' => true }
@@ -1118,6 +1127,75 @@ class RaindropTest < Minitest::Test
     assert_includes stderr, 'Merge requires at least two source tags.'
   end
 
+  def test_tags_remove_calls_client_with_normalized_tags
+    client = FakeTagClient.new
+
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'remove', ' unused-tag ', 'temporary-tag', 'unused-tag', '--collection', '12345678'],
+      client
+    )
+
+    assert_equal 0, code
+    assert_equal(
+      [
+        {
+          tags: ['unused-tag', 'temporary-tag'],
+          collection_id: 12_345_678
+        }
+      ],
+      client.remove_calls
+    )
+    assert_equal "Removed tags: unused-tag, temporary-tag\n", stdout
+    assert_empty stderr
+  end
+
+  def test_tags_remove_prints_json_result
+    client = FakeTagClient.new
+
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'remove', 'unused-tag', '--json'],
+      client
+    )
+
+    assert_equal 0, code
+    assert_equal({ 'result' => true }, JSON.parse(stdout))
+    assert_equal 0, client.remove_calls.first.fetch(:collection_id)
+    assert_empty stderr
+  end
+
+  def test_tags_remove_requires_tag
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'remove'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'missing argument: TAG'
+  end
+
+  def test_tags_remove_rejects_empty_tag
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'remove', ' '],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'invalid argument: TAG'
+  end
+
+  def test_tags_remove_rejects_non_positive_collection
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'remove', 'unused-tag', '--collection', '0'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'invalid argument: collection'
+  end
+
   def test_tags_help_lists_management_subcommands
     code, stdout, stderr = run_cli_with_client(
       ['tags', '--help'],
@@ -1127,6 +1205,7 @@ class RaindropTest < Minitest::Test
     assert_equal 0, code
     assert_includes stdout, 'rename'
     assert_includes stdout, 'merge'
+    assert_includes stdout, 'remove'
     assert_empty stderr
   end
 

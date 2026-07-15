@@ -103,7 +103,7 @@ raindrop auth logout
 
 ### JSON output
 
-Use `--json` to output API results as JSON. This option is available for `search`, `get`, `add`, `update`, `delete`, `tags rename`, and `tags merge`.
+Use `--json` to output API results as JSON. This option is available for `search`, `get`, `add`, `update`, `delete`, `tags rename`, `tags merge`, and `tags remove`.
 
 ```sh
 raindrop search example --json
@@ -244,6 +244,20 @@ raindrop tags merge old-tag legacy-tag --into new-tag --collection 12345678
 ```
 
 When `--collection` is omitted, the tags are merged across all collections. Duplicate source tags and the destination tag are removed from the source list, and at least two source tags must remain.
+
+Remove one or more tags from all collections:
+
+```sh
+raindrop tags remove unused-tag temporary-tag
+```
+
+Restrict the removal to one collection:
+
+```sh
+raindrop tags remove unused-tag temporary-tag --collection 12345678
+```
+
+When `--collection` is omitted, the tags are removed across all collections. This command does not prompt for confirmation, and removal cannot be undone through the Tags API.
 
 Show the available tag management commands:
 

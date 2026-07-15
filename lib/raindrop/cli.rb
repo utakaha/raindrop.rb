@@ -143,6 +143,8 @@ module Raindrop
         tags_rename(argv)
       when 'merge'
         tags_merge(argv)
+      when 'remove'
+        tags_remove(argv)
       when '-h', '--help'
         reject_arguments!(argv)
         print_tags_usage
@@ -407,6 +409,25 @@ module Raindrop
       SUCCESS
     end
 
+    def tags_remove(argv)
+      options = parse_tags_remove_options(argv)
+      raise OptionParser::MissingArgument, 'TAG' if argv.empty?
+
+      tags = argv.map { |tag| parse_tag_name(tag, 'TAG') }.uniq
+      payload = authenticated_client.remove_tags(
+        tags,
+        collection_id: options.fetch(:collection_id) || 0
+      )
+
+      if options.fetch(:json)
+        print_json_item(payload)
+      else
+        @stdout.puts "Removed tags: #{tags.join(', ')}"
+      end
+
+      SUCCESS
+    end
+
     def collections(argv)
       reject_arguments!(argv)
 
@@ -547,35 +568,33 @@ module Raindrop
     end
 
     def parse_tags_rename_options(argv)
-      options = { json: false, collection_id: nil }
-      parser = OptionParser.new do |opts|
-        opts.on('--json') do
-          options[:json] = true
-        end
-
-        opts.on('--collection ID', Integer) do |collection_id|
-          options[:collection_id] = collection_id
-        end
-      end
-      parser.parse!(argv)
-      validate_tag_collection_id!(options.fetch(:collection_id))
-      options
+      parse_tag_action_options(argv)
     end
 
     def parse_tags_merge_options(argv)
-      options = { json: false, collection_id: nil, replacement: nil }
-      parser = OptionParser.new do |opts|
-        opts.on('--json') do
+      parse_tag_action_options(argv, replacement: nil) do |parser, options|
+        parser.on('--into TAG') do |replacement|
+          options[:replacement] = replacement
+        end
+      end
+    end
+
+    def parse_tags_remove_options(argv)
+      parse_tag_action_options(argv)
+    end
+
+    def parse_tag_action_options(argv, **additional_options)
+      options = { json: false, collection_id: nil }.merge(additional_options)
+      parser = OptionParser.new do |option_parser|
+        option_parser.on('--json') do
           options[:json] = true
         end
 
-        opts.on('--collection ID', Integer) do |collection_id|
+        option_parser.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
         end
 
-        opts.on('--into TAG') do |replacement|
-          options[:replacement] = replacement
-        end
+        yield option_parser, options if block_given?
       end
       parser.parse!(argv)
       validate_tag_collection_id!(options.fetch(:collection_id))
@@ -1118,6 +1137,8 @@ module Raindrop
                   Rename a tag
           merge TAG... --into NEW [--collection ID] [--json]
                   Merge tags
+          remove TAG... [--collection ID] [--json]
+                  Remove tags
       USAGE
     end
   end

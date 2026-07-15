@@ -86,6 +86,16 @@ module Raindrop
       replace_tags(tags, replacement: replacement, collection_id: collection_id)
     end
 
+    def remove_tags(tags, collection_id: 0)
+      response = @connection.delete("tags/#{collection_id}") do |request|
+        request.headers['Content-Type'] = 'application/json'
+        request.body = JSON.generate('tags' => tags)
+      end
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
+
     def root_collections
       response = @connection.get('collections')
       handle_response(response)

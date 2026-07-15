@@ -382,6 +382,36 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_remove_tags_sends_authorized_json_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.delete('/rest/v1/tags/12345678') do |env|
+        assert_equal 'Bearer secret-token', env.request_headers['Authorization']
+        assert_equal 'application/json', env.request_headers['Accept']
+        assert_equal 'application/json', env.request_headers['Content-Type']
+        assert_equal(
+          {
+            'tags' => ['unused-tag', 'temporary-tag']
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { 'Content-Type' => 'application/json' },
+          { 'result' => true }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: 'secret-token').remove_tags(
+      ['unused-tag', 'temporary-tag'],
+      collection_id: 12_345_678
+    )
+
+    assert_equal true, payload.fetch('result')
+    stubs.verify_stubbed_calls
+  end
+
   def test_root_collections_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
       stub.get('/rest/v1/collections') do |env|
