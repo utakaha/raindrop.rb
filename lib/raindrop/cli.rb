@@ -144,6 +144,8 @@ module Raindrop
         tags(argv)
       when 'rename'
         tags_rename(argv)
+      when 'merge'
+        tags_merge(argv)
       when '-h', '--help'
         reject_arguments!(argv)
         print_tags_usage
@@ -386,6 +388,28 @@ module Raindrop
       SUCCESS
     end
 
+    def tags_merge(argv)
+      options = parse_tags_merge_options(argv)
+      replacement = parse_tag_name(options.fetch(:replacement), '--into')
+      tags = argv.map { |tag| parse_tag_name(tag, 'TAG') }.uniq
+      tags.delete(replacement)
+      raise OptionParser::InvalidArgument, 'Merge requires at least two source tags.' if tags.size < 2
+
+      payload = authenticated_client.merge_tags(
+        tags,
+        replacement: replacement,
+        collection_id: options.fetch(:collection_id) || 0
+      )
+
+      if options.fetch(:json)
+        print_json_item(payload)
+      else
+        @stdout.puts "Merged tags into #{replacement}: #{tags.join(', ')}"
+      end
+
+      SUCCESS
+    end
+
     def collections(argv)
       reject_arguments!(argv)
 
@@ -534,6 +558,26 @@ module Raindrop
 
         opts.on('--collection ID', Integer) do |collection_id|
           options[:collection_id] = collection_id
+        end
+      end
+      parser.parse!(argv)
+      validate_tag_collection_id!(options.fetch(:collection_id))
+      options
+    end
+
+    def parse_tags_merge_options(argv)
+      options = { json: false, collection_id: nil, replacement: nil }
+      parser = OptionParser.new do |opts|
+        opts.on('--json') do
+          options[:json] = true
+        end
+
+        opts.on('--collection ID', Integer) do |collection_id|
+          options[:collection_id] = collection_id
+        end
+
+        opts.on('--into TAG') do |replacement|
+          options[:replacement] = replacement
         end
       end
       parser.parse!(argv)
@@ -1068,6 +1112,8 @@ module Raindrop
         Commands:
           rename OLD NEW [--collection ID] [--json]
                   Rename a tag
+          merge TAG... --into NEW [--collection ID] [--json]
+                  Merge tags
       USAGE
     end
   end

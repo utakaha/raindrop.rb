@@ -350,6 +350,38 @@ class ClientTest < Minitest::Test
     stubs.verify_stubbed_calls
   end
 
+  def test_merge_tags_sends_authorized_json_request
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.put('/rest/v1/tags/55596991') do |env|
+        assert_equal 'Bearer secret-token', env.request_headers['Authorization']
+        assert_equal 'application/json', env.request_headers['Accept']
+        assert_equal 'application/json', env.request_headers['Content-Type']
+        assert_equal(
+          {
+            'tags' => ['ruby-lang', 'ruby-language'],
+            'replace' => 'ruby'
+          },
+          JSON.parse(env.body)
+        )
+
+        [
+          200,
+          { 'Content-Type' => 'application/json' },
+          { 'result' => true }.to_json
+        ]
+      end
+    end
+
+    payload = client_with(stubs, token: 'secret-token').merge_tags(
+      ['ruby-lang', 'ruby-language'],
+      replacement: 'ruby',
+      collection_id: 55_596_991
+    )
+
+    assert_equal true, payload.fetch('result')
+    stubs.verify_stubbed_calls
+  end
+
   def test_root_collections_sends_authorized_request
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
       stub.get('/rest/v1/collections') do |env|

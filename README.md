@@ -257,6 +257,26 @@ Output the API response as JSON:
 raindrop tags rename ruby-lang ruby --json
 ```
 
+Merge two or more tags into one tag:
+
+```sh
+raindrop tags merge ruby-lang ruby-language --into ruby
+```
+
+Restrict the merge to one collection:
+
+```sh
+raindrop tags merge ruby-lang ruby-language --into ruby --collection 55596991
+```
+
+When `--collection` is omitted, the tags are merged across all collections. Duplicate source tags and the destination tag are removed from the source list, and at least two source tags must remain.
+
+Output the API response as JSON:
+
+```sh
+raindrop tags merge ruby-lang ruby-language --into ruby --json
+```
+
 Show the available tag management commands:
 
 ```sh

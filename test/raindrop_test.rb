@@ -41,9 +41,10 @@ class FakeConfig
 end
 
 class FakeTagClient
-  attr_reader :rename_calls
+  attr_reader :merge_calls, :rename_calls
 
   def initialize
+    @merge_calls = []
     @rename_calls = []
   end
 
@@ -58,6 +59,15 @@ class FakeTagClient
   def rename_tag(tag, replacement:, collection_id: 0)
     @rename_calls << {
       tag: tag,
+      replacement: replacement,
+      collection_id: collection_id
+    }
+    { 'result' => true }
+  end
+
+  def merge_tags(tags, replacement:, collection_id: 0)
+    @merge_calls << {
+      tags: tags,
       replacement: replacement,
       collection_id: collection_id
     }
@@ -1009,7 +1019,102 @@ class RaindropTest < Minitest::Test
     assert_includes stderr, 'invalid argument: collection'
   end
 
-  def test_tags_help_lists_rename_subcommand
+  def test_tags_merge_calls_client_with_normalized_tags
+    client = FakeTagClient.new
+
+    code, stdout, stderr = run_cli_with_client(
+      [
+        'tags', 'merge', 'ruby-lang', 'ruby-lang', 'ruby', 'ruby-language',
+        '--into', 'ruby', '--collection', '55596991'
+      ],
+      client
+    )
+
+    assert_equal 0, code
+    assert_equal(
+      [
+        {
+          tags: ['ruby-lang', 'ruby-language'],
+          replacement: 'ruby',
+          collection_id: 55_596_991
+        }
+      ],
+      client.merge_calls
+    )
+    assert_equal "Merged tags into ruby: ruby-lang, ruby-language\n", stdout
+    assert_empty stderr
+  end
+
+  def test_tags_merge_prints_json_result
+    client = FakeTagClient.new
+
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', 'ruby-language', '--into', 'ruby', '--json'],
+      client
+    )
+
+    assert_equal 0, code
+    assert_equal({ 'result' => true }, JSON.parse(stdout))
+    assert_equal 0, client.merge_calls.first.fetch(:collection_id)
+    assert_empty stderr
+  end
+
+  def test_tags_merge_requires_replacement
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', 'ruby-language'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'missing argument: --into'
+  end
+
+  def test_tags_merge_requires_two_source_tags
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', '--into', 'ruby'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'Merge requires at least two source tags.'
+  end
+
+  def test_tags_merge_rejects_empty_source_tag
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', ' ', '--into', 'ruby'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'invalid argument: TAG'
+  end
+
+  def test_tags_merge_rejects_empty_replacement
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', 'ruby-language', '--into', ' '],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'invalid argument: --into'
+  end
+
+  def test_tags_merge_rejects_too_few_tags_after_normalization
+    code, stdout, stderr = run_cli_with_client(
+      ['tags', 'merge', 'ruby-lang', 'ruby-lang', 'ruby', '--into', 'ruby'],
+      FakeTagClient.new
+    )
+
+    assert_equal 1, code
+    assert_empty stdout
+    assert_includes stderr, 'Merge requires at least two source tags.'
+  end
+
+  def test_tags_help_lists_management_subcommands
     code, stdout, stderr = run_cli_with_client(
       ['tags', '--help'],
       FakeTagClient.new
@@ -1017,6 +1122,7 @@ class RaindropTest < Minitest::Test
 
     assert_equal 0, code
     assert_includes stdout, 'rename'
+    assert_includes stdout, 'merge'
     assert_empty stderr
   end
 

@@ -70,16 +70,11 @@ module Raindrop
     end
 
     def rename_tag(tag, replacement:, collection_id: 0)
-      response = @connection.put("tags/#{collection_id}") do |request|
-        request.headers['Content-Type'] = 'application/json'
-        request.body = JSON.generate(
-          'tags' => [tag],
-          'replace' => replacement
-        )
-      end
-      handle_response(response)
-    rescue Faraday::ConnectionFailed => e
-      raise ApiError, "API request failed: #{e.message}"
+      replace_tags([tag], replacement: replacement, collection_id: collection_id)
+    end
+
+    def merge_tags(tags, replacement:, collection_id: 0)
+      replace_tags(tags, replacement: replacement, collection_id: collection_id)
     end
 
     def root_collections
@@ -97,6 +92,19 @@ module Raindrop
     end
 
     private
+
+    def replace_tags(tags, replacement:, collection_id:)
+      response = @connection.put("tags/#{collection_id}") do |request|
+        request.headers['Content-Type'] = 'application/json'
+        request.body = JSON.generate(
+          'tags' => tags,
+          'replace' => replacement
+        )
+      end
+      handle_response(response)
+    rescue Faraday::ConnectionFailed => e
+      raise ApiError, "API request failed: #{e.message}"
+    end
 
     def default_connection
       Faraday.new(url: BASE_URL) do |connection|
