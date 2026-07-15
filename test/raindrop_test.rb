@@ -395,7 +395,8 @@ class RaindropTest < Minitest::Test
   end
 
   def test_search_rejects_limit_less_than_one
-    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '0'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '0'],
+                                    config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -403,7 +404,8 @@ class RaindropTest < Minitest::Test
   end
 
   def test_search_rejects_limit_greater_than_fifty
-    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '51'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['search', 'example', '--limit', '51'],
+                                    config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -631,7 +633,7 @@ class RaindropTest < Minitest::Test
   def test_search_all_prints_each_page_as_it_is_loaded
     stdout = StringIO.new
     cli = Raindrop::CLI.new([], stdout: stdout)
-    cli.define_singleton_method(:sleep) { |_seconds| }
+    cli.define_singleton_method(:sleep) { |_seconds| nil }
     client = Object.new
     test_case = self
     client.define_singleton_method(:search_raindrops) do |_query, collection_id:, perpage:, page:, sort:|
@@ -751,7 +753,8 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_requires_id
-    code, stdout, stderr, = run_cli(['update', '--title', 'Example Article'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['update', '--title', 'Example Article'],
+                                    config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout
@@ -786,7 +789,8 @@ class RaindropTest < Minitest::Test
   end
 
   def test_update_rejects_invalid_id
-    code, stdout, stderr, = run_cli(['update', 'abc', '--title', 'Example Article'], config: FakeConfig.new(token: 'stored-token'))
+    code, stdout, stderr, = run_cli(['update', 'abc', '--title', 'Example Article'],
+                                    config: FakeConfig.new(token: 'stored-token'))
 
     assert_equal 1, code
     assert_empty stdout

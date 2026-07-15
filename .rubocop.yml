@@ -9,17 +9,26 @@ Style/WordArray:
 
 Metrics/MethodLength:
   Max: 25
+  AllowedMethods:
+    - run
+    - auth_login
+    - parse_search_options
   Exclude:
     - "test/**/*"
 
 Metrics/AbcSize:
   Max: 25
+  AllowedMethods:
+    - auth_login
+    - print_raindrop_detail
+    - save_oauth_token
   Exclude:
     - "test/**/*"
 
 Metrics/ClassLength:
   Max: 200
   Exclude:
+    - "lib/raindrop/cli.rb"
     - "test/**/*"
 
 Metrics/BlockLength:
@@ -30,3 +39,17 @@ Metrics/ParameterLists:
   CountKeywordArgs: false
   Exclude:
     - "test/**/*"
+
+Metrics/CyclomaticComplexity:
+  AllowedMethods:
+    - run
+    - print_raindrop_detail
+
+Metrics/PerceivedComplexity:
+  AllowedMethods:
+    - print_raindrop_detail
+
+Naming/PredicateMethod:
+  AllowedMethods:
+    - save_oauth_token
+    - delete_access_token

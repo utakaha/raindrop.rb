@@ -118,7 +118,7 @@ class ConfigTest < Minitest::Test
   private
 
   def with_config_home(dir)
-    original = ENV['XDG_CONFIG_HOME']
+    original = ENV.fetch('XDG_CONFIG_HOME', nil)
     ENV['XDG_CONFIG_HOME'] = dir
     yield
   ensure
