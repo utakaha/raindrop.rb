@@ -778,7 +778,7 @@ module Raindrop
         else
           count = payload['count'].to_i
           total = count if count.positive?
-          print_search_items(items, total: total, summary_count: total || fetched + items.size, header: !printed)
+          print_search_items(items, total: total, summary_count: total || (fetched + items.size), header: !printed)
           printed = true
         end
 
